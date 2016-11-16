@@ -1,5 +1,9 @@
 ﻿namespace Core
 {
+    using Geometries;
+    using Helpers;
+    using Primitives;
+
     using SharpDX;
     using SharpDX.Direct3D;
     using SharpDX.Direct3D12;
@@ -59,6 +63,25 @@
         private const int _swapChainBufferCount = 2;
         private readonly Stopwatch _fpsTimer = new Stopwatch();
 
+        private ShaderBytecode _mvsByteCode;
+        private ShaderBytecode _mpsByteCode;
+
+        private InputLayoutDescription _inputLayout;
+        private PipelineState _pso;
+        private RootSignature _rootSignature;
+
+        private float _theta = 1.5f * MathUtil.Pi;
+        private float _phi = MathUtil.PiOverFour;
+        private float _radius = 5.0f;
+
+        private Matrix _proj = Matrix.Identity;
+        private Matrix _view = Matrix.Identity;
+
+        private Utilities.UploadBuffer<ObjectConstants> _objectCB;
+        private DescriptorHeap _cbvHeap;
+        private DescriptorHeap[] _descriptorHeaps;
+        private Mesh _boxMesh;
+
         public D3DApp(IntPtr hInstance, int clientWidth, int clientHeight)
         {
             _hInstance = hInstance;
@@ -70,8 +93,23 @@
             CreateSwapChain();
             CreateRtvAndDsvDescriptorHeaps();
 
+            _commandList.Reset(_commandAllocator, null);
+
+            BuildDescriptorHeaps();
+            BuildConstantBuffers();
+            BuildRootSignature();
+            BuildShadersAndInputLayout();
+            BuildMesh();
+            BuildPSO();
+
+            _commandList.Close();
+            _commandQueue.ExecuteCommandList(_commandList);
+
+            // Wait until initialization is complete.
+            FlushCommandQueue();
+
             _running = true;
-            Resize();
+            //Resize();
         }
 
         public bool M4xMsaaState
@@ -199,6 +237,124 @@
             _dsvHeap = _device.CreateDescriptorHeap(dsvHeapDesc);
         }
 
+        private void BuildShadersAndInputLayout()
+        {
+            _mvsByteCode = ShaderHelper.CompileShader("Shaders\\Color.hlsl", "VS", "vs_5_0");
+            _mpsByteCode = ShaderHelper.CompileShader("Shaders\\Color.hlsl", "PS", "ps_5_0");
+
+            _inputLayout = new InputLayoutDescription(new[] // TODO: API suggestion: Add params overload
+            {
+                new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
+                new InputElement("COLOR", 0, Format.R32G32B32A32_Float, 12, 0)
+            });
+        }
+
+        private void BuildPSO()
+        {
+            var psoDesc = new GraphicsPipelineStateDescription
+            {
+                InputLayout = _inputLayout,
+                RootSignature = _rootSignature,
+                VertexShader = _mvsByteCode,
+                PixelShader = _mpsByteCode,
+                RasterizerState = RasterizerStateDescription.Default(),
+                BlendState = BlendStateDescription.Default(),
+                DepthStencilState = DepthStencilStateDescription.Default(),
+                SampleMask = int.MaxValue,
+                PrimitiveTopologyType = PrimitiveTopologyType.Triangle,
+                RenderTargetCount = 1,
+                SampleDescription = new SampleDescription(_msaaCount, _msaaQuality),
+                DepthStencilFormat = _depthStencilFormat
+            };
+            psoDesc.RenderTargetFormats[0] = _backBufferFormat;
+
+            _pso = _device.CreateGraphicsPipelineState(psoDesc);
+        }
+
+        private void BuildRootSignature()
+        {
+            var cbvTable = new DescriptorRange(DescriptorRangeType.ConstantBufferView, 1, 0);
+
+            var rootSigDesc = new RootSignatureDescription(RootSignatureFlags.AllowInputAssemblerInputLayout, new[]
+            {
+                new RootParameter(ShaderVisibility.Vertex, cbvTable)
+            });
+
+            _rootSignature = _device.CreateRootSignature(rootSigDesc.Serialize());
+        }
+
+        private void BuildDescriptorHeaps()
+        {
+            var cbvHeapDesc = new DescriptorHeapDescription
+            {
+                DescriptorCount = 1,
+                Type = DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView,
+                Flags = DescriptorHeapFlags.ShaderVisible,
+                NodeMask = 0
+            };
+            _cbvHeap = _device.CreateDescriptorHeap(cbvHeapDesc);
+            _descriptorHeaps = new[] { _cbvHeap };
+        }
+
+        private void BuildConstantBuffers()
+        {
+            int sizeInBytes = BufferHelper.CalcConstantBufferByteSize<ObjectConstants>();
+
+            _objectCB = new Utilities.UploadBuffer<ObjectConstants>(_device, 1, true);
+
+            var cbvDesc = new ConstantBufferViewDescription
+            {
+                BufferLocation = _objectCB.Resource.GPUVirtualAddress,
+                SizeInBytes = sizeInBytes
+            };
+            CpuDescriptorHandle cbvHeapHandle = _cbvHeap.CPUDescriptorHandleForHeapStart;
+            _device.CreateConstantBufferView(cbvDesc, cbvHeapHandle);
+        }
+
+        private void BuildMesh()
+        {
+            Vertex[] vertices =
+          {
+                new Vertex { Pos = new Vector3(-1.0f, -1.0f, -1.0f), Color = Color.White.ToVector4() },
+                new Vertex { Pos = new Vector3(-1.0f, +1.0f, -1.0f), Color = Color.Black.ToVector4() },
+                new Vertex { Pos = new Vector3(+1.0f, +1.0f, -1.0f), Color = Color.Red.ToVector4() },
+                new Vertex { Pos = new Vector3(+1.0f, -1.0f, -1.0f), Color = Color.Green.ToVector4() },
+                new Vertex { Pos = new Vector3(-1.0f, -1.0f, +1.0f), Color = Color.Blue.ToVector4() },
+                new Vertex { Pos = new Vector3(-1.0f, +1.0f, +1.0f), Color = Color.Yellow.ToVector4() },
+                new Vertex { Pos = new Vector3(+1.0f, +1.0f, +1.0f), Color = Color.Cyan.ToVector4() },
+                new Vertex { Pos = new Vector3(+1.0f, -1.0f, +1.0f), Color = Color.Magenta.ToVector4() }
+            };
+
+            short[] indices =
+            {
+                // front face
+		        0, 1, 2,
+                0, 2, 3,
+
+		        // back face
+		        4, 6, 5,
+                4, 7, 6,
+
+		        // left face
+		        4, 5, 1,
+                4, 1, 0,
+
+		        // right face
+		        3, 2, 6,
+                3, 6, 7,
+
+		        // top face
+		        1, 5, 6,
+                1, 6, 2,
+
+		        // bottom face
+		        4, 0, 3,
+                4, 3, 7
+            };
+
+            _boxMesh = Mesh.Create(_device, _commandList, vertices, indices);
+        }
+
         public void Resize(int clientWidth, int clientHeight)
         {
             _paused = true;
@@ -207,6 +363,8 @@
             _clientHeight = clientHeight;
 
             Resize();
+
+            _proj = Matrix.PerspectiveFovLH(MathUtil.PiOverFour, (float)_clientWidth / _clientHeight, 1.0f, 1000.0f);
 
             _paused = false;
         }
@@ -348,6 +506,24 @@
 
         private void Update()
         {
+            // Convert Spherical to Cartesian coordinates.
+            float x = _radius * MathHelper.Sinf(_phi) * MathHelper.Cosf(_theta);
+            float z = _radius * MathHelper.Sinf(_phi) * MathHelper.Sinf(_theta);
+            float y = _radius * MathHelper.Cosf(_phi);
+
+            // Build the view matrix.
+            _view = Matrix.LookAtLH(new Vector3(x, y, z), Vector3.Zero, Vector3.Up);
+
+            // Simply use identity for world matrix for this demo.
+            Matrix world = Matrix.Identity;
+
+            var cb = new ObjectConstants
+            {
+                WorldViewProj = Matrix.Transpose(world * _view * _proj)
+            };
+
+            // Update the constant buffer with the latest worldViewProj matrix.
+            _objectCB.CopyData(0, ref cb);
         }
 
         private void Draw()
@@ -361,14 +537,21 @@
 
                 _commandAllocator.Reset();
 
-                _commandList.Reset(_commandAllocator, null);
-
-                _commandList.ResourceBarrierTransition(_currentBackBuffer, ResourceStates.Present, ResourceStates.RenderTarget);
+                _commandList.Reset(_commandAllocator, _pso);
                 _commandList.SetViewport(_viewport);
                 _commandList.SetScissorRectangles(_scissorRectangle);
-                _commandList.ClearRenderTargetView(_currentBackBufferView, Color.LightSteelBlue);
+                _commandList.ResourceBarrierTransition(_currentBackBuffer, ResourceStates.Present, ResourceStates.RenderTarget);
+                _commandList.ClearRenderTargetView(_currentBackBufferView, Color.LightBlue);
                 _commandList.ClearDepthStencilView(_depthStencilView, ClearFlags.FlagsDepth | ClearFlags.FlagsStencil, 1.0f, 0);
                 _commandList.SetRenderTargets(_currentBackBufferView, _depthStencilView);
+                _commandList.SetDescriptorHeaps(_descriptorHeaps.Length, _descriptorHeaps);
+                _commandList.SetGraphicsRootSignature(_rootSignature);
+                _commandList.SetVertexBuffer(0, _boxMesh.VertexBufferView);
+                _commandList.SetIndexBuffer(_boxMesh.IndexBufferView);
+                _commandList.PrimitiveTopology = PrimitiveTopology.TriangleList;
+                _commandList.SetGraphicsRootDescriptorTable(0, _cbvHeap.GPUDescriptorHandleForHeapStart);
+
+                _commandList.DrawIndexedInstanced(_boxMesh.IndexCount, 1, 0, 0, 0);
                 _commandList.ResourceBarrierTransition(_currentBackBuffer, ResourceStates.RenderTarget, ResourceStates.Present);
                 _commandList.Close();
 

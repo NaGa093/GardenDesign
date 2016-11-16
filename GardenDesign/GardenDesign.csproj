@@ -100,10 +100,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Asserts\Asserts.csproj">
-      <Project>{e19a99d9-8410-456e-8f62-6cf5517e8b41}</Project>
-      <Name>Asserts</Name>
-    </ProjectReference>
     <ProjectReference Include="..\DirectXView\DirectXView.csproj">
       <Project>{1bada1ff-98b7-468b-8367-bf66cff86216}</Project>
       <Name>DirectXView</Name>
