@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.directXControl1 = new DirectXView.DirectXControl();
+            this.directXControl1 = new DirectXView.DesignerControl();
             this.SuspendLayout();
             // 
             // directXControl1
@@ -53,7 +53,7 @@
 
         #endregion
 
-        private DirectXView.DirectXControl directXControl1;
+        private DirectXView.DesignerControl directXControl1;
     }
 }
 

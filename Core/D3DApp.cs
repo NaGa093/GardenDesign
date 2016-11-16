@@ -104,12 +104,9 @@
 
             _commandList.Close();
             _commandQueue.ExecuteCommandList(_commandList);
-
-            // Wait until initialization is complete.
             FlushCommandQueue();
 
             _running = true;
-            //Resize();
         }
 
         public bool M4xMsaaState

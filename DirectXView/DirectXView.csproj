@@ -60,6 +60,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DesignerControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="DesignerControl.Designer.cs">
+      <DependentUpon>DesignerControl.cs</DependentUpon>
+    </Compile>
     <Compile Include="DirectXControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -77,6 +83,11 @@
       <Project>{3e6e6cb0-0024-490e-a367-b0ebc0f5fafd}</Project>
       <Name>Core</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="DesignerControl.resx">
+      <DependentUpon>DesignerControl.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

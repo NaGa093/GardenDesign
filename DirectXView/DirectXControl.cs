@@ -31,7 +31,10 @@
 
         private void DirectXControl_Resize(object sender, System.EventArgs e)
         {
-            _d3DApp.Resize(Width, Height);
+            if (_d3DApp != null)
+            {
+                _d3DApp.Resize(Width, Height);
+            }
         }
     }
 }
