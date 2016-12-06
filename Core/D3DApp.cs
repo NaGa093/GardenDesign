@@ -1,9 +1,9 @@
 ﻿namespace Core
 {
-    using Geometries;
-    using Helpers;
-    using Primitives;
-
+    using Core.Helpers;
+    using Core.Meshes.Base;
+    using Core.Primitives;
+    using Meshes;
     using SharpDX;
     using SharpDX.Direct3D;
     using SharpDX.Direct3D12;
@@ -80,7 +80,7 @@
         private Utilities.UploadBuffer<ObjectConstants> _objectCB;
         private DescriptorHeap _cbvHeap;
         private DescriptorHeap[] _descriptorHeaps;
-        private Mesh _boxMesh;
+        private Mesh _mesh;
 
         public D3DApp(IntPtr hInstance, int clientWidth, int clientHeight)
         {
@@ -310,46 +310,8 @@
 
         private void BuildMesh()
         {
-            Vertex[] vertices =
-          {
-                new Vertex { Pos = new Vector3(-1.0f, -1.0f, -1.0f), Color = Color.White.ToVector4() },
-                new Vertex { Pos = new Vector3(-1.0f, +1.0f, -1.0f), Color = Color.Black.ToVector4() },
-                new Vertex { Pos = new Vector3(+1.0f, +1.0f, -1.0f), Color = Color.Red.ToVector4() },
-                new Vertex { Pos = new Vector3(+1.0f, -1.0f, -1.0f), Color = Color.Green.ToVector4() },
-                new Vertex { Pos = new Vector3(-1.0f, -1.0f, +1.0f), Color = Color.Blue.ToVector4() },
-                new Vertex { Pos = new Vector3(-1.0f, +1.0f, +1.0f), Color = Color.Yellow.ToVector4() },
-                new Vertex { Pos = new Vector3(+1.0f, +1.0f, +1.0f), Color = Color.Cyan.ToVector4() },
-                new Vertex { Pos = new Vector3(+1.0f, -1.0f, +1.0f), Color = Color.Magenta.ToVector4() }
-            };
-
-            short[] indices =
-            {
-                // front face
-		        0, 1, 2,
-                0, 2, 3,
-
-		        // back face
-		        4, 6, 5,
-                4, 7, 6,
-
-		        // left face
-		        4, 5, 1,
-                4, 1, 0,
-
-		        // right face
-		        3, 2, 6,
-                3, 6, 7,
-
-		        // top face
-		        1, 5, 6,
-                1, 6, 2,
-
-		        // bottom face
-		        4, 0, 3,
-                4, 3, 7
-            };
-
-            _boxMesh = Mesh.Create(_device, _commandList, vertices, indices);
+            //_boxMesh = Triangle.Create(_device, _commandList, new Vector3(-1.0f, -1.0f, 0f), new Vector3(-1.0f, +1.0f, 0f), new Vector3(+1.0f, +1.0f, 0f), Color.White);
+            _mesh = Grid.Create(_device, _commandList, 10, 1.0f, Color.White);
         }
 
         public void Resize(int clientWidth, int clientHeight)
@@ -509,7 +471,7 @@
             float y = _radius * MathHelper.Cosf(_phi);
 
             // Build the view matrix.
-            _view = Matrix.LookAtLH(new Vector3(x, y, z), Vector3.Zero, Vector3.Up);
+            _view = Matrix.LookAtLH(new Vector3(0, 0, -10), Vector3.Zero, new Vector3(0, 1, 0));
 
             // Simply use identity for world matrix for this demo.
             Matrix world = Matrix.Identity;
@@ -543,12 +505,12 @@
                 _commandList.SetRenderTargets(_currentBackBufferView, _depthStencilView);
                 _commandList.SetDescriptorHeaps(_descriptorHeaps.Length, _descriptorHeaps);
                 _commandList.SetGraphicsRootSignature(_rootSignature);
-                _commandList.SetVertexBuffer(0, _boxMesh.VertexBufferView);
-                _commandList.SetIndexBuffer(_boxMesh.IndexBufferView);
-                _commandList.PrimitiveTopology = PrimitiveTopology.TriangleList;
+                _commandList.SetVertexBuffer(0, _mesh.VertexBufferView);
+                _commandList.SetIndexBuffer(_mesh.IndexBufferView);
+                _commandList.PrimitiveTopology = PrimitiveTopology.LineList;
                 _commandList.SetGraphicsRootDescriptorTable(0, _cbvHeap.GPUDescriptorHandleForHeapStart);
 
-                _commandList.DrawIndexedInstanced(_boxMesh.IndexCount, 1, 0, 0, 0);
+                _commandList.DrawIndexedInstanced(_mesh.IndexCount, 1, 0, 0, 0);
                 _commandList.ResourceBarrierTransition(_currentBackBuffer, ResourceStates.RenderTarget, ResourceStates.Present);
                 _commandList.Close();
 

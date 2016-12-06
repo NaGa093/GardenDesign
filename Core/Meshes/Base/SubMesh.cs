@@ -1,4 +1,4 @@
-﻿namespace Core.Geometries
+﻿namespace Core.Meshes.Base
 {
     using SharpDX;
 
