@@ -4,6 +4,7 @@
     using Core.Primitives;
 
     using SharpDX;
+    using SharpDX.Direct3D;
     using SharpDX.Direct3D12;
     using System.Collections.Generic;
 
@@ -14,6 +15,7 @@
         public static Mesh Create(
            Device device,
            GraphicsCommandList commandList,
+           PrimitiveTopology primitiveTopology,
            int cellsPerSide,
            float cellSize,
            Color color,
@@ -50,7 +52,7 @@
                 yCurrent += cellSize;
             }
 
-            return Create(device, commandList, vertices, indices);
+            return Create(device, commandList, primitiveTopology, vertices, indices);
         }
     }
 }

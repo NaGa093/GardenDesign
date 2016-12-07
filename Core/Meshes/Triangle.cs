@@ -4,6 +4,7 @@
     using Core.Primitives;
 
     using SharpDX;
+    using SharpDX.Direct3D;
     using SharpDX.Direct3D12;
 
     using Device = SharpDX.Direct3D12.Device;
@@ -13,6 +14,7 @@
         public static Mesh Create(
          Device device,
          GraphicsCommandList commandList,
+         PrimitiveTopology primitiveTopology,
          Vector3 vA,
          Vector3 vB,
          Vector3 vC,
@@ -31,7 +33,7 @@
                 0,1,2
             };
 
-            return Create(device, commandList, vertices, indices);
+            return Create(device, commandList, primitiveTopology, vertices, indices);
         }
     }
 }

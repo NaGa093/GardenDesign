@@ -88,6 +88,7 @@
     <Compile Include="Helpers\ShaderHelper.cs" />
     <Compile Include="Meshes\Cylinder.cs" />
     <Compile Include="Meshes\Grid.cs" />
+    <Compile Include="Meshes\Sphere.cs" />
     <Compile Include="Meshes\Triangle.cs" />
     <Compile Include="Primitives\ObjectConstants.cs" />
     <Compile Include="Primitives\Vertex.cs" />

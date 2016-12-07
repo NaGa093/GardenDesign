@@ -1,8 +1,9 @@
 ﻿namespace Core.Meshes.Base
 {
-    using Helpers;
+    using Core.Helpers;
 
     using SharpDX;
+    using SharpDX.Direct3D;
     using SharpDX.Direct3D12;
     using SharpDX.DXGI;
 
@@ -16,6 +17,8 @@
     public class Mesh : IDisposable
     {
         private readonly List<IDisposable> _toDispose = new List<IDisposable>();
+        private static GraphicsCommandList _commandList;
+        private static PrimitiveTopology _primitiveTopology;
 
         public string Name { get; set; }
 
@@ -52,12 +55,16 @@
         public static Mesh Create<TVertex, TIndex>(
            Device device,
            GraphicsCommandList commandList,
+           PrimitiveTopology primitiveTopology,
            IEnumerable<TVertex> vertices,
            IEnumerable<TIndex> indices,
            string name = "Default")
            where TVertex : struct
            where TIndex : struct
         {
+            _commandList = commandList;
+            _primitiveTopology = primitiveTopology;
+
             TVertex[] vertexArray = vertices.ToArray();
             TIndex[] indexArray = indices.ToArray();
 
@@ -89,6 +96,20 @@
             };
         }
 
+        public void Draw()
+        {
+            _commandList.SetVertexBuffer(0, VertexBufferView);
+            _commandList.SetIndexBuffer(IndexBufferView);
+            _commandList.PrimitiveTopology = _primitiveTopology;
+            _commandList.DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
+        }
+
+        public void Dispose()
+        {
+            foreach (IDisposable disposable in _toDispose)
+                disposable.Dispose();
+        }
+
         private static Format GetIndexFormat<TIndex>()
         {
             var format = Format.Unknown;
@@ -103,12 +124,6 @@
             }
 
             return format;
-        }
-
-        public void Dispose()
-        {
-            foreach (IDisposable disposable in _toDispose)
-                disposable.Dispose();
         }
     }
 }

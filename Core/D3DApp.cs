@@ -72,7 +72,9 @@
         private Utilities.UploadBuffer<ObjectConstants> _objectCB;
         private DescriptorHeap _cbvHeap;
         private DescriptorHeap[] _descriptorHeaps;
-        private Mesh _mesh;
+        private Mesh _grid;
+        private Mesh _sphere;
+        private Mesh _cylinder;
 
         public D3DApp(IntPtr hInstance, int clientWidth, int clientHeight)
         {
@@ -310,8 +312,9 @@
         private void BuildMesh()
         {
             //_boxMesh = Triangle.Create(_device, _commandList, new Vector3(-1.0f, -1.0f, 0f), new Vector3(-1.0f, +1.0f, 0f), new Vector3(+1.0f, +1.0f, 0f), Color.White);
-            //_mesh = Grid.Create(_device, _commandList, 10, 1.0f, Color.White);
-            _mesh = Cylinder.Create(_device, _commandList, 2, 1, 1, 10, Color.Black);
+            _grid = Grid.Create(_device, _commandList, PrimitiveTopology.LineList, 10, 1.0f, Color.White);
+            //_cylinder = Cylinder.Create(_device, _commandList, PrimitiveTopology.TriangleList, 2, 1, 1, 10, Color.Black);
+            //_sphere = Sphere.Create(_device, _commandList, PrimitiveTopology.TriangleList, 2, 10, 10, Color.Red);
         }
 
         public void Resize(int clientWidth, int clientHeight)
@@ -494,12 +497,13 @@
                 _commandList.SetRenderTargets(_currentBackBufferView, _depthStencilView);
                 _commandList.SetDescriptorHeaps(_descriptorHeaps.Length, _descriptorHeaps);
                 _commandList.SetGraphicsRootSignature(_rootSignature);
-                _commandList.SetVertexBuffer(0, _mesh.VertexBufferView);
-                _commandList.SetIndexBuffer(_mesh.IndexBufferView);
-                _commandList.PrimitiveTopology = PrimitiveTopology.TriangleList;
                 _commandList.SetGraphicsRootDescriptorTable(0, _cbvHeap.GPUDescriptorHandleForHeapStart);
 
-                _commandList.DrawIndexedInstanced(_mesh.IndexCount, 1, 0, 0, 0);
+                //Draw
+                _grid.Draw();
+                //_sphere.Draw();
+                //_cylinder.Draw();
+
                 _commandList.ResourceBarrierTransition(_currentBackBuffer, ResourceStates.RenderTarget, ResourceStates.Present);
                 _commandList.Close();
 

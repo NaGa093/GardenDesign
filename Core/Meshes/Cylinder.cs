@@ -4,6 +4,7 @@
     using Core.Primitives;
 
     using SharpDX;
+    using SharpDX.Direct3D;
     using SharpDX.Direct3D12;
     using System;
     using System.Collections.Generic;
@@ -15,7 +16,9 @@
         public static Mesh Create(
            Device device,
            GraphicsCommandList commandList,
-           float height, float radiusBottom,
+           PrimitiveTopology primitiveTopology,
+           float height,
+           float radiusBottom,
            float radiusTop,
            int slices,
            Color color,
@@ -110,7 +113,7 @@
                 }
             }
 
-            return Create(device, commandList, vertices, indices);
+            return Create(device, commandList, primitiveTopology, vertices, indices);
         }
     }
 }
