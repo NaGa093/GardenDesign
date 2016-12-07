@@ -78,12 +78,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Cameras\Base\Camera.cs" />
+    <Compile Include="Cameras\OrbitCamera.cs" />
     <Compile Include="D3DApp.cs" />
     <Compile Include="Meshes\Base\Mesh.cs" />
     <Compile Include="Meshes\Base\SubMesh.cs" />
     <Compile Include="Helpers\BufferHelper.cs" />
     <Compile Include="Helpers\MathHelper.cs" />
     <Compile Include="Helpers\ShaderHelper.cs" />
+    <Compile Include="Meshes\Cylinder.cs" />
     <Compile Include="Meshes\Grid.cs" />
     <Compile Include="Meshes\Triangle.cs" />
     <Compile Include="Primitives\ObjectConstants.cs" />

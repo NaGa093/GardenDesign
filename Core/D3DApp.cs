@@ -1,19 +1,18 @@
 ﻿namespace Core
 {
+    using Core.Cameras;
     using Core.Helpers;
+    using Core.Meshes;
     using Core.Meshes.Base;
     using Core.Primitives;
-    using Meshes;
     using SharpDX;
     using SharpDX.Direct3D;
     using SharpDX.Direct3D12;
     using SharpDX.DXGI;
-
     using System;
     using System.Diagnostics;
     using System.Threading;
     using System.Threading.Tasks;
-
     using Device = SharpDX.Direct3D12.Device;
     using RectangleF = SharpDX.RectangleF;
     using Resource = SharpDX.Direct3D12.Resource;
@@ -70,13 +69,6 @@
         private PipelineState _pso;
         private RootSignature _rootSignature;
 
-        private float _theta = 1.5f * MathUtil.Pi;
-        private float _phi = MathUtil.PiOverFour;
-        private float _radius = 5.0f;
-
-        private Matrix _proj = Matrix.Identity;
-        private Matrix _view = Matrix.Identity;
-
         private Utilities.UploadBuffer<ObjectConstants> _objectCB;
         private DescriptorHeap _cbvHeap;
         private DescriptorHeap[] _descriptorHeaps;
@@ -107,6 +99,13 @@
             FlushCommandQueue();
 
             _running = true;
+
+            Camera = new OrbitCamera();
+        }
+
+        public OrbitCamera Camera
+        {
+            get;
         }
 
         public bool M4xMsaaState
@@ -311,7 +310,8 @@
         private void BuildMesh()
         {
             //_boxMesh = Triangle.Create(_device, _commandList, new Vector3(-1.0f, -1.0f, 0f), new Vector3(-1.0f, +1.0f, 0f), new Vector3(+1.0f, +1.0f, 0f), Color.White);
-            _mesh = Grid.Create(_device, _commandList, 10, 1.0f, Color.White);
+            //_mesh = Grid.Create(_device, _commandList, 10, 1.0f, Color.White);
+            _mesh = Cylinder.Create(_device, _commandList, 2, 1, 1, 10, Color.Black);
         }
 
         public void Resize(int clientWidth, int clientHeight)
@@ -323,7 +323,7 @@
 
             Resize();
 
-            _proj = Matrix.PerspectiveFovLH(MathUtil.PiOverFour, (float)_clientWidth / _clientHeight, 1.0f, 1000.0f);
+            this.Camera.SetPerspective(MathUtil.PiOverFour, (float)_clientWidth / _clientHeight, 1.0f, 1000.0f);
 
             _paused = false;
         }
@@ -465,20 +465,9 @@
 
         private void Update()
         {
-            // Convert Spherical to Cartesian coordinates.
-            float x = _radius * MathHelper.Sinf(_phi) * MathHelper.Cosf(_theta);
-            float z = _radius * MathHelper.Sinf(_phi) * MathHelper.Sinf(_theta);
-            float y = _radius * MathHelper.Cosf(_phi);
-
-            // Build the view matrix.
-            _view = Matrix.LookAtLH(new Vector3(0, 0, -10), Vector3.Zero, new Vector3(0, 1, 0));
-
-            // Simply use identity for world matrix for this demo.
-            Matrix world = Matrix.Identity;
-
             var cb = new ObjectConstants
             {
-                WorldViewProj = Matrix.Transpose(world * _view * _proj)
+                WorldViewProj = Matrix.Transpose(Matrix.Identity * this.Camera.View * this.Camera.Perspective)
             };
 
             // Update the constant buffer with the latest worldViewProj matrix.
@@ -507,7 +496,7 @@
                 _commandList.SetGraphicsRootSignature(_rootSignature);
                 _commandList.SetVertexBuffer(0, _mesh.VertexBufferView);
                 _commandList.SetIndexBuffer(_mesh.IndexBufferView);
-                _commandList.PrimitiveTopology = PrimitiveTopology.LineList;
+                _commandList.PrimitiveTopology = PrimitiveTopology.TriangleList;
                 _commandList.SetGraphicsRootDescriptorTable(0, _cbvHeap.GPUDescriptorHandleForHeapStart);
 
                 _commandList.DrawIndexedInstanced(_mesh.IndexCount, 1, 0, 0, 0);
