@@ -312,9 +312,9 @@
         private void BuildMesh()
         {
             //_boxMesh = Triangle.Create(_device, _commandList, new Vector3(-1.0f, -1.0f, 0f), new Vector3(-1.0f, +1.0f, 0f), new Vector3(+1.0f, +1.0f, 0f), Color.White);
-            _grid = Grid.Create(_device, _commandList, PrimitiveTopology.LineList, 10, 1.0f, Color.White);
-            //_cylinder = Cylinder.Create(_device, _commandList, PrimitiveTopology.TriangleList, 2, 1, 1, 10, Color.Black);
-            //_sphere = Sphere.Create(_device, _commandList, PrimitiveTopology.TriangleList, 2, 10, 10, Color.Red);
+            _grid = new Grid(_device, _commandList, PrimitiveTopology.LineList, 10, 1.0f, Color.White);
+            _cylinder = new Cylinder(_device, _commandList, PrimitiveTopology.TriangleList, 2, 1, 1, 10, Color.Black);
+            _sphere = new Sphere(_device, _commandList, PrimitiveTopology.TriangleList, 2, 10, 10, Color.Red);
         }
 
         public void Resize(int clientWidth, int clientHeight)
@@ -501,8 +501,8 @@
 
                 //Draw
                 _grid.Draw();
-                //_sphere.Draw();
-                //_cylinder.Draw();
+                _sphere.Draw();
+                _cylinder.Draw();
 
                 _commandList.ResourceBarrierTransition(_currentBackBuffer, ResourceStates.RenderTarget, ResourceStates.Present);
                 _commandList.Close();

@@ -11,7 +11,7 @@
 
     public class Triangle : Mesh
     {
-        public static Mesh Create(
+        public Triangle(
          Device device,
          GraphicsCommandList commandList,
          PrimitiveTopology primitiveTopology,
@@ -33,7 +33,7 @@
                 0,1,2
             };
 
-            return Create(device, commandList, primitiveTopology, vertices, indices);
+            this.Initialize(device, vertices, indices);
         }
     }
 }

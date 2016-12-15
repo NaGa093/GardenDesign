@@ -14,7 +14,7 @@
 
     public class Sphere : Mesh
     {
-        public static Mesh Create(
+        public Sphere(
            Device device,
            GraphicsCommandList commandList,
            PrimitiveTopology primitiveTopology,
@@ -24,8 +24,13 @@
            Color color,
            string name = "Default")
         {
+            _commandList = commandList;
+            _primitiveTopology = primitiveTopology;
+
+            this.Name = name;
+
             var vertices = new List<Vertex>();
-            var indices = new List<int>();
+            var indices = new List<short>();
 
             int numVerticesPerRow = slices + 1;
             int numVerticesPerColumn = stacks + 1;
@@ -74,7 +79,7 @@
                 }
             }
 
-            return Create(device, commandList, primitiveTopology, vertices, indices);
+            this.Initialize(device, vertices, indices);
         }
     }
 }

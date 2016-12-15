@@ -13,8 +13,7 @@
 
     public class Cylinder : Mesh
     {
-        public static Mesh Create(
-           Device device,
+        public Cylinder(Device device,
            GraphicsCommandList commandList,
            PrimitiveTopology primitiveTopology,
            float height,
@@ -24,8 +23,13 @@
            Color color,
            string name = "Default")
         {
+            this._commandList = commandList;
+            this._primitiveTopology = primitiveTopology;
+
+            this.Name = name;
+
             var vertices = new List<Vertex>();
-            var indices = new List<int>();
+            var indices = new List<short>();
 
             int numVerticesPerRow = slices + 1;
 
@@ -113,7 +117,15 @@
                 }
             }
 
-            return Create(device, commandList, primitiveTopology, vertices, indices);
+            this.Initialize(device, vertices, indices);
+        }
+
+        public new void Draw()
+        {
+            _commandList.SetVertexBuffer(0, VertexBufferView);
+            _commandList.SetIndexBuffer(IndexBufferView);
+            _commandList.PrimitiveTopology = _primitiveTopology;
+            _commandList.DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
         }
     }
 }
