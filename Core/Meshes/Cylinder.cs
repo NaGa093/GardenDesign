@@ -16,7 +16,8 @@
         public Cylinder(Device device,
            GraphicsCommandList commandList,
            PrimitiveTopology primitiveTopology,
-           float height,
+           Vector3 startPoint,
+           Vector3 endPoint,
            float radiusBottom,
            float radiusTop,
            int slices,
@@ -31,10 +32,12 @@
             var vertices = new List<Vertex>();
             var indices = new List<short>();
 
+            var length = Helpers.MathHelper.DistanceBetweenVector(startPoint, endPoint);
+
             int numVerticesPerRow = slices + 1;
 
-            float theta = 0.0f;
-            float horizontalAngularStride = ((float)Math.PI * 2) / slices;
+            var theta = 0.0f;
+            var horizontalAngularStride = ((float)Math.PI * 2) / slices;
 
             for (int verticalIt = 0; verticalIt < 2; verticalIt++)
             {
@@ -51,22 +54,22 @@
                         // upper circle
                         x = radiusTop * (float)Math.Cos(theta);
                         y = radiusTop * (float)Math.Sin(theta);
-                        z = height;
+                        z = length / 2 + 1;
                     }
                     else
                     {
                         // lower circle
                         x = radiusBottom * (float)Math.Cos(theta);
                         y = radiusBottom * (float)Math.Sin(theta);
-                        z = 0;
+                        z = -length / 2 + 1;
                     }
 
                     vertices.Add(new Vertex { Pos = new Vector3(x, z, y), Color = color.ToVector4() });
                 }
             }
 
-            vertices.Add(new Vertex { Pos = new Vector3(0, height, 0), Color = color.ToVector4() });
-            vertices.Add(new Vertex { Pos = new Vector3(0, 0, 0), Color = color.ToVector4() });
+            vertices.Add(new Vertex { Pos = new Vector3(0, length / 2 + 1, 0), Color = color.ToVector4() });
+            vertices.Add(new Vertex { Pos = new Vector3(0, -length / 2 + 1, 0), Color = color.ToVector4() });
 
             for (int verticalIt = 0; verticalIt < 1; verticalIt++)
             {

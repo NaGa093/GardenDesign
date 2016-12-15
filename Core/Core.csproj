@@ -87,6 +87,7 @@
     <Compile Include="Helpers\BufferHelper.cs" />
     <Compile Include="Helpers\MathHelper.cs" />
     <Compile Include="Helpers\ShaderHelper.cs" />
+    <Compile Include="Meshes\CoordinateAxis.cs" />
     <Compile Include="Meshes\Cylinder.cs" />
     <Compile Include="Meshes\Grid.cs" />
     <Compile Include="Meshes\Sphere.cs" />

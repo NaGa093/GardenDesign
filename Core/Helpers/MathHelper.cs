@@ -106,5 +106,25 @@
             Shadow(ref light, ref plane, out result);
             return result;
         }
+
+        public static Vector3 Middle2Vector(Vector3 startpoint, Vector3 stopPoint)
+        {
+            return (startpoint + stopPoint) / 2;
+        }
+
+        public static float DistanceBetweenVector(Vector3 startpoint, Vector3 stopPoint)
+        {
+            return (float)(Math.Sqrt(Math.Pow(stopPoint.X - startpoint.X, 2) + Math.Pow(stopPoint.Y - startpoint.Y, 2) + Math.Pow(stopPoint.Z - startpoint.Z, 2)));
+        }
+
+        public static float DegreeToRadian(float degree)
+        {
+            return (float)(degree * Math.PI / 180);
+        }
+
+        public static float RadianToDegree(float angle)
+        {
+            return (float)(angle * (180.0 / Math.PI));
+        }
     }
 }
