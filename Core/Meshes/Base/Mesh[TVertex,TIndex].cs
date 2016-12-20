@@ -89,6 +89,11 @@
             get; set;
         }
 
+        public Matrix Transform
+        {
+            get; set;
+        }
+
         public VertexBufferView VertexBufferView => new VertexBufferView
         {
             BufferLocation = this.VertexBufferGPU.GPUVirtualAddress,

@@ -2,10 +2,12 @@
 {
     using Core.Meshes.Base;
     using Core.Primitives;
+    using Core.Helpers;
 
     using SharpDX;
     using SharpDX.Direct3D;
     using SharpDX.Direct3D12;
+
     using System;
     using System.Collections.Generic;
 
@@ -32,7 +34,7 @@
             var vertices = new List<Vertex>();
             var indices = new List<short>();
 
-            var length = Helpers.MathHelper.DistanceBetweenVector(startPoint, endPoint);
+            var length = MathHelper.DistanceBetweenVector(startPoint, endPoint);
 
             int numVerticesPerRow = slices + 1;
 
@@ -113,6 +115,7 @@
                     short lb = (short)(horizontalIt + (verticalIt + 1) * (numVerticesPerRow));
                     short rb = (short)((horizontalIt + 1) + (verticalIt + 1) * (numVerticesPerRow));
 
+
                     short patchIndexBottom = (short)(numVerticesPerRow * 2 + 1);
                     indices.Add(lb);
                     indices.Add(rb);
@@ -121,6 +124,17 @@
             }
 
             this.Initialize(device, vertices, indices);
+
+            Vector3 vz = new Vector3(0, 1, 0);
+
+            Vector3 p = startPoint - endPoint;
+            p.Normalize();
+            Vector3 t = Vector3.Cross(vz, p);
+
+            double angle = 180 / Math.PI * Math.Acos((Vector3.Dot(vz, p) / p.Length()));
+            Vector3 middle = MathHelper.Middle2Vector(startPoint, endPoint);
+            Transform = Matrix.RotationAxis(new Vector3(t.X, t.Y, t.Z), MathHelper.DegreeToRadian((float)angle)) *
+                Matrix.Translation(middle) * new Plane(new Vector3(0, 1, 0), -1f).Reflection();
         }
 
         public new void Draw()

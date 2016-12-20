@@ -313,7 +313,7 @@
         {
             //_boxMesh = Triangle.Create(_device, _commandList, new Vector3(-1.0f, -1.0f, 0f), new Vector3(-1.0f, +1.0f, 0f), new Vector3(+1.0f, +1.0f, 0f), Color.White);
             _grid = new Grid(_device, _commandList, PrimitiveTopology.LineList, 10, 1.0f, Color.White);
-            _cylinder = new Cylinder(_device, _commandList, PrimitiveTopology.TriangleList, new Vector3(0, 0, 0), new Vector3(0, 10, 0), 1, 1, 10, Color.Black);
+            _cylinder = new Cylinder(_device, _commandList, PrimitiveTopology.LineList, new Vector3(2, 2, 2), new Vector3(4, 4, 4), 1, 1, 10, Color.Black);
             _sphere = new Sphere(_device, _commandList, PrimitiveTopology.TriangleList, 2, 10, 10, Color.Red);
         }
 
@@ -481,7 +481,7 @@
         {
             lock (_commandList)
             {
-                if (_paused)
+                if (_paused || _swapChain.IsDisposed)
                 {
                     return;
                 }
@@ -502,7 +502,7 @@
                 //Draw
                 _grid.Draw();
                 _cylinder.Draw();
-                _sphere.Draw();
+                //_sphere.Draw();
 
                 _commandList.ResourceBarrierTransition(_currentBackBuffer, ResourceStates.RenderTarget, ResourceStates.Present);
                 _commandList.Close();
