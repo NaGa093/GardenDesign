@@ -1,41 +1,18 @@
 ﻿namespace Core.Cameras.Base
 {
+    using Enums;
     using SharpDX;
 
     public class Camera
     {
-        public Vector3 eye;
-        public Vector3 target;
-        public Vector3 up;
+        protected Vector3 eye;
+        protected Vector3 target;
+        protected Vector3 up;
 
-        public Matrix view = Matrix.Identity;
-        public Matrix perspective = Matrix.Identity;
-        public Matrix viewPerspective = Matrix.Identity;
-
-        public Matrix View
-        {
-            get { return view; }
-        }
-
-        public void SetPerspective(float fov, float aspect, float znear, float zfar)
-        {
-            perspective = Matrix.PerspectiveFovLH(fov, aspect, znear, zfar);
-        }
-
-        public void SetView(Vector3 eye, Vector3 target, Vector3 up)
-        {
-            view = Matrix.LookAtLH(eye, target, up);
-        }
-
-        public Matrix Perspective
-        {
-            get { return perspective; }
-        }
-
-        public Matrix ViewPerspective
-        {
-            get { return view * perspective; }
-        }
+        private Matrix viewMatrix;
+        private Matrix worldMatrix;
+        private Matrix perspectiveMatrix;
+        private Matrix orthographicMatrix;
 
         public bool dragging = false;
         public int startX = 0;
@@ -43,5 +20,71 @@
 
         public int startY = 0;
         public int deltaY = 0;
+
+        public Camera()
+        {
+            this.viewMatrix = Matrix.Identity;
+            this.worldMatrix = Matrix.Identity;
+            this.perspectiveMatrix = Matrix.Identity;
+            this.orthographicMatrix = Matrix.Identity;
+        }
+
+        public Matrix WorldMatrix
+        {
+            get { return worldMatrix; }
+        }
+
+        public Matrix ViewMatrix
+        {
+            get { return viewMatrix; }
+        }
+
+        public Matrix PerspectiveMatrix
+        {
+            get { return perspectiveMatrix; }
+        }
+
+        public Matrix OrthographicMatrix
+        {
+            get { return orthographicMatrix; }
+        }
+
+        public Matrix ViewPerspectiveMatrix
+        {
+            get { return viewMatrix * perspectiveMatrix; }
+        }
+
+        public Matrix ViewOrthographicMatrix
+        {
+            get { return viewMatrix * orthographicMatrix; }
+        }
+
+        public Matrix ProjectionMatrix
+        {
+            get
+            {
+                return Projection == Projections.Orthographic ? OrthographicMatrix : PerspectiveMatrix;
+            }
+        }
+
+        public Projections Projection
+        {
+            get; set;
+        }
+
+        public void SetPerspective(float fov, float aspect, float znear, float zfar)
+        {
+            perspectiveMatrix = Matrix.PerspectiveFovLH(fov, aspect, znear, zfar);
+        }
+
+        public void SetOrthographic(float width, float height, float znear, float zfar)
+        {
+            orthographicMatrix = Matrix.OrthoLH(width, height, znear, zfar);
+        }
+
+        public void SetView(Vector3 eye, Vector3 target, Vector3 up)
+        {
+            viewMatrix = Matrix.LookAtLH(eye, target, up);
+        }
     }
 }

@@ -4,8 +4,6 @@
 
     using SharpDX;
 
-    using System;
-
     public class OrbitCamera : Camera
     {
         private const float _maxZoom = 3.0f;
@@ -16,8 +14,7 @@
             this.target = new Vector3(0, 0, 0);
             this.up = new Vector3(0, 1, 0);
 
-            this.view = Matrix.LookAtLH(eye, target, up);
-            this.perspective = Matrix.PerspectiveFovLH((float)Math.PI / 4, 1.3f, 0.1f, 1000.0f);
+            this.SetView(eye, target, up);
         }
 
         public void RotateY(int value)

@@ -327,6 +327,7 @@
             Resize();
 
             this.Camera.SetPerspective(MathUtil.PiOverFour, (float)_clientWidth / _clientHeight, 1.0f, 1000.0f);
+            this.Camera.SetOrthographic((float)_clientWidth / 100, (float)_clientHeight/ 100, -15000f, 15000.0f);
 
             _paused = false;
         }
@@ -470,10 +471,16 @@
         {
             var cb = new ObjectConstants
             {
-                WorldViewProj = Matrix.Transpose(Matrix.Identity * this.Camera.View * this.Camera.Perspective)
+                WorldViewProj = Matrix.Transpose(this._grid.Transform * this.Camera.WorldMatrix * this.Camera.ViewMatrix * this.Camera.ProjectionMatrix)
             };
 
-            // Update the constant buffer with the latest worldViewProj matrix.
+            _objectCB.CopyData(0, ref cb);
+
+            cb = new ObjectConstants
+            {
+                WorldViewProj = Matrix.Transpose(this._cylinder.Transform * this.Camera.WorldMatrix * this.Camera.ViewMatrix * this.Camera.ProjectionMatrix)
+            };
+
             _objectCB.CopyData(0, ref cb);
         }
 

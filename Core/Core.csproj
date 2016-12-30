@@ -81,6 +81,7 @@
     <Compile Include="Cameras\Base\Camera.cs" />
     <Compile Include="Cameras\OrbitCamera.cs" />
     <Compile Include="D3DApp.cs" />
+    <Compile Include="Enums\Projections.cs" />
     <Compile Include="Meshes\Base\Mesh.cs" />
     <Compile Include="Meshes\Base\Mesh[TVertex,TIndex].cs" />
     <Compile Include="Meshes\Base\SubMesh.cs" />

@@ -1,6 +1,7 @@
 ﻿namespace Core.Meshes.Base
 {
     using Core.Helpers;
+    using Core.Primitives;
 
     using SharpDX;
     using SharpDX.Direct3D;
@@ -19,6 +20,7 @@
         private List<IDisposable> _toDispose;
         protected GraphicsCommandList _commandList;
         protected PrimitiveTopology _primitiveTopology;
+        private int _objCBIndex;
 
         public Mesh()
         {
@@ -35,8 +37,16 @@
             _primitiveTopology = primitiveTopology;
 
             this.Name = name;
-
+            this.Transform = Matrix.Identity;
             this.Initialize(device, vertices, indices);
+        }
+
+        public int ObjCBIndex
+        {
+            get
+            {
+                return _objCBIndex++;
+            }
         }
 
         public string Name
@@ -143,13 +153,16 @@
             _commandList.SetVertexBuffer(0, VertexBufferView);
             _commandList.SetIndexBuffer(IndexBufferView);
             _commandList.PrimitiveTopology = _primitiveTopology;
+            //_commandList.SetGraphicsRootConstantBufferView(0, this.VertexBufferGPU.GPUVirtualAddress + ObjCBIndex * BufferHelper.CalcConstantBufferByteSize<ObjectConstants>());
             _commandList.DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
         }
 
         public void Dispose()
         {
             foreach (IDisposable disposable in _toDispose)
+            {
                 disposable.Dispose();
+            }   
         }
 
         private static Format GetIndexFormat<TIndex>()

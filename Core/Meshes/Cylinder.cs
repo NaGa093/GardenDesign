@@ -134,7 +134,7 @@
             double angle = 180 / Math.PI * Math.Acos((Vector3.Dot(vz, p) / p.Length()));
             Vector3 middle = MathHelper.Middle2Vector(startPoint, endPoint);
             Transform = Matrix.RotationAxis(new Vector3(t.X, t.Y, t.Z), MathHelper.DegreeToRadian((float)angle)) *
-                Matrix.Translation(middle) * new Plane(new Vector3(0, 1, 0), -1f).Reflection();
+                Matrix.Translation(middle);
         }
 
         public new void Draw()
@@ -142,6 +142,7 @@
             _commandList.SetVertexBuffer(0, VertexBufferView);
             _commandList.SetIndexBuffer(IndexBufferView);
             _commandList.PrimitiveTopology = _primitiveTopology;
+            _commandList.SetGraphicsRootConstantBufferView(0, this.VertexBufferGPU.GPUVirtualAddress + ObjCBIndex * BufferHelper.CalcConstantBufferByteSize<ObjectConstants>());
             _commandList.DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
         }
     }
