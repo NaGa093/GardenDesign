@@ -3,8 +3,6 @@
     using SharpDX;
     using SharpDX.Direct3D12;
 
-    using System;
-
     public class BufferHelper
     {
         public static int CalcConstantBufferByteSize<T>() where T : struct => (System.Runtime.InteropServices.Marshal.SizeOf(typeof(T)) + 255) & ~255;
@@ -16,7 +14,7 @@
             long byteSize,
             out Resource uploadBuffer) where T : struct
         {
-            Resource defaultBuffer = device.CreateCommittedResource(
+            var defaultBuffer = device.CreateCommittedResource(
                 new HeapProperties(HeapType.Default),
                 HeapFlags.None,
                 ResourceDescription.Buffer(byteSize),
@@ -28,7 +26,7 @@
                 ResourceDescription.Buffer(byteSize),
                 ResourceStates.GenericRead);
 
-            IntPtr ptr = uploadBuffer.Map(0);
+            var ptr = uploadBuffer.Map(0);
             Utilities.Write(ptr, initData, 0, initData.Length);
             uploadBuffer.Unmap(0);
 

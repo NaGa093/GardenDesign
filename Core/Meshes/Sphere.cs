@@ -32,42 +32,42 @@
             var vertices = new List<Vertex>();
             var indices = new List<short>();
 
-            int numVerticesPerRow = slices + 1;
-            int numVerticesPerColumn = stacks + 1;
+            var numVerticesPerRow = slices + 1;
+            var numVerticesPerColumn = stacks + 1;
 
-            float theta = 0.0f;
-            float phi = 0.0f;
+            var theta = 0.0f;
+            var phi = 0.0f;
 
-            float verticalAngularStride = (float)Math.PI / stacks;
-            float horizontalAngularStride = ((float)Math.PI * 2) / slices;
+            var verticalAngularStride = (float)Math.PI / stacks;
+            var horizontalAngularStride = ((float)Math.PI * 2) / slices;
 
-            for (int verticalIt = 0; verticalIt < numVerticesPerColumn; verticalIt++)
+            for (var verticalIt = 0; verticalIt < numVerticesPerColumn; verticalIt++)
             {
                 // beginning on top of the sphere:
                 theta = ((float)Math.PI / 2.0f) - verticalAngularStride * verticalIt;
 
-                for (int horizontalIt = 0; horizontalIt < numVerticesPerRow; horizontalIt++)
+                for (var horizontalIt = 0; horizontalIt < numVerticesPerRow; horizontalIt++)
                 {
                     phi = horizontalAngularStride * horizontalIt;
 
                     // position
-                    float x = radius * (float)Math.Cos(theta) * (float)Math.Cos(phi);
-                    float y = radius * (float)Math.Cos(theta) * (float)Math.Sin(phi);
-                    float z = radius * (float)Math.Sin(theta);
+                    var x = radius * (float)Math.Cos(theta) * (float)Math.Cos(phi);
+                    var y = radius * (float)Math.Cos(theta) * (float)Math.Sin(phi);
+                    var z = radius * (float)Math.Sin(theta);
 
                     vertices.Add(new Vertex { Pos = new Vector3(x, y, z), Color = color.ToVector4() });
                 }
             }
 
-            for (int verticalIt = 0; verticalIt < stacks; verticalIt++)
+            for (var verticalIt = 0; verticalIt < stacks; verticalIt++)
             {
-                for (int horizontalIt = 0; horizontalIt < slices; horizontalIt++)
+                for (var horizontalIt = 0; horizontalIt < slices; horizontalIt++)
                 {
-                    short lt = (short)(horizontalIt + verticalIt * (numVerticesPerRow));
-                    short rt = (short)((horizontalIt + 1) + verticalIt * (numVerticesPerRow));
+                    var lt = (short)(horizontalIt + verticalIt * (numVerticesPerRow));
+                    var rt = (short)((horizontalIt + 1) + verticalIt * (numVerticesPerRow));
 
-                    short lb = (short)(horizontalIt + (verticalIt + 1) * (numVerticesPerRow));
-                    short rb = (short)((horizontalIt + 1) + (verticalIt + 1) * (numVerticesPerRow));
+                    var lb = (short)(horizontalIt + (verticalIt + 1) * (numVerticesPerRow));
+                    var rb = (short)((horizontalIt + 1) + (verticalIt + 1) * (numVerticesPerRow));
 
                     indices.Add(lt);
                     indices.Add(rt);

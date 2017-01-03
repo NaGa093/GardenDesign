@@ -20,24 +20,27 @@
         public void RotateY(int value)
         {
             var rotY = (value / 100.0f);
-            Matrix rotMat = Matrix.RotationY(rotY);
+            var rotMat = Matrix.RotationY(rotY);
+
             this.eye = Vector3.TransformCoordinate(eye, rotMat);
             this.SetView(eye, target, up);
         }
 
         public void RotateOrtho(int value)
         {
-            Vector3 viewDir = target - eye;
-            Vector3 orhto = Vector3.Cross(viewDir, up);
+            var viewDir = target - eye;
+            var orhto = Vector3.Cross(viewDir, up);
 
             var rotOrtho = (value / 100.0f);
-            Matrix rotOrthoMat = Matrix.RotationAxis(orhto, rotOrtho);
+            var rotOrthoMat = Matrix.RotationAxis(orhto, rotOrtho);
 
-            Vector3 eyeLocal = eye - target;
+            var eyeLocal = eye - target;
             eyeLocal = Vector3.TransformCoordinate(eyeLocal, rotOrthoMat);
-            Vector3 newEye = eyeLocal + target;
-            Vector3 newViewDir = target - newEye;
-            float cosAngle = Vector3.Dot(newViewDir, up) / (newViewDir.Length() * up.Length());
+
+            var newEye = eyeLocal + target;
+            var newViewDir = target - newEye;
+            var cosAngle = Vector3.Dot(newViewDir, up) / (newViewDir.Length() * up.Length());
+
             if (cosAngle < 0.9f && cosAngle > -0.9f)
             {
                 this.eye = eyeLocal + target;
@@ -48,6 +51,7 @@
         public void Zoom(int value)
         {
             float scaleFactor = 1.0f;
+
             if (value > 0)
             {
                 scaleFactor = 1.1f;
@@ -58,8 +62,9 @@
                     scaleFactor = 0.9f;
             }
 
-            Matrix scale = Matrix.Scaling(scaleFactor, scaleFactor, scaleFactor);
+            var scale = Matrix.Scaling(scaleFactor, scaleFactor, scaleFactor);
             eye = Vector3.TransformCoordinate(eye, scale);
+
             this.SetView(eye, target, up);
         }
     }

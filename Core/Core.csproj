@@ -82,9 +82,9 @@
     <Compile Include="Cameras\OrbitCamera.cs" />
     <Compile Include="D3DApp.cs" />
     <Compile Include="Enums\Projections.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Meshes\Base\Mesh.cs" />
     <Compile Include="Meshes\Base\Mesh[TVertex,TIndex].cs" />
-    <Compile Include="Meshes\Base\SubMesh.cs" />
     <Compile Include="Helpers\BufferHelper.cs" />
     <Compile Include="Helpers\MathHelper.cs" />
     <Compile Include="Helpers\ShaderHelper.cs" />

@@ -1,6 +1,6 @@
 ﻿namespace Assets.Controls
 {
-    using Enums;
+    using Assets.Enums;
 
     using System;
     using System.ComponentModel;

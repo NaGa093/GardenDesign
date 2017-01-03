@@ -2,7 +2,6 @@
 {
     using Core.Meshes.Base;
     using Core.Primitives;
-    using Core.Helpers;
 
     using SharpDX;
     using SharpDX.Direct3D;
@@ -67,7 +66,7 @@
             _commandList.SetVertexBuffer(0, VertexBufferView);
             _commandList.SetIndexBuffer(IndexBufferView);
             _commandList.PrimitiveTopology = _primitiveTopology;
-            _commandList.SetGraphicsRootConstantBufferView(0, this.VertexBufferGPU.GPUVirtualAddress + ObjCBIndex * BufferHelper.CalcConstantBufferByteSize<ObjectConstants>());
+            //_commandList.SetGraphicsRootConstantBufferView(0, this.VertexBufferGPU.GPUVirtualAddress + ObjCBIndex * BufferHelper.CalcConstantBufferByteSize<ObjectConstants>());
             _commandList.DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
         }
     }

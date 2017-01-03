@@ -36,14 +36,14 @@
 
             var length = MathHelper.DistanceBetweenVector(startPoint, endPoint);
 
-            int numVerticesPerRow = slices + 1;
+            var numVerticesPerRow = slices + 1;
 
             var theta = 0.0f;
             var horizontalAngularStride = ((float)Math.PI * 2) / slices;
 
-            for (int verticalIt = 0; verticalIt < 2; verticalIt++)
+            for (var verticalIt = 0; verticalIt < 2; verticalIt++)
             {
-                for (int horizontalIt = 0; horizontalIt < numVerticesPerRow; horizontalIt++)
+                for (var horizontalIt = 0; horizontalIt < numVerticesPerRow; horizontalIt++)
                 {
                     float x;
                     float y;
@@ -73,15 +73,15 @@
             vertices.Add(new Vertex { Pos = new Vector3(0, length / 2 + 1, 0), Color = color.ToVector4() });
             vertices.Add(new Vertex { Pos = new Vector3(0, -length / 2 + 1, 0), Color = color.ToVector4() });
 
-            for (int verticalIt = 0; verticalIt < 1; verticalIt++)
+            for (var verticalIt = 0; verticalIt < 1; verticalIt++)
             {
-                for (int horizontalIt = 0; horizontalIt < slices; horizontalIt++)
+                for (var horizontalIt = 0; horizontalIt < slices; horizontalIt++)
                 {
-                    short lt = (short)(horizontalIt + verticalIt * (numVerticesPerRow));
-                    short rt = (short)((horizontalIt + 1) + verticalIt * (numVerticesPerRow));
+                    var lt = (short)(horizontalIt + verticalIt * (numVerticesPerRow));
+                    var rt = (short)((horizontalIt + 1) + verticalIt * (numVerticesPerRow));
 
-                    short lb = (short)(horizontalIt + (verticalIt + 1) * (numVerticesPerRow));
-                    short rb = (short)((horizontalIt + 1) + (verticalIt + 1) * (numVerticesPerRow));
+                    var lb = (short)(horizontalIt + (verticalIt + 1) * (numVerticesPerRow));
+                    var rb = (short)((horizontalIt + 1) + (verticalIt + 1) * (numVerticesPerRow));
 
                     indices.Add(lt);
                     indices.Add(rt);
@@ -93,14 +93,14 @@
                 }
             }
 
-            for (int verticalIt = 0; verticalIt < 1; verticalIt++)
+            for (var verticalIt = 0; verticalIt < 1; verticalIt++)
             {
-                for (int horizontalIt = 0; horizontalIt < slices; horizontalIt++)
+                for (var horizontalIt = 0; horizontalIt < slices; horizontalIt++)
                 {
-                    short lt = (short)(horizontalIt + verticalIt * (numVerticesPerRow));
-                    short rt = (short)((horizontalIt + 1) + verticalIt * (numVerticesPerRow));
+                    var lt = (short)(horizontalIt + verticalIt * (numVerticesPerRow));
+                    var rt = (short)((horizontalIt + 1) + verticalIt * (numVerticesPerRow));
 
-                    short patchIndexTop = (short)(numVerticesPerRow * 2);
+                    var patchIndexTop = (short)(numVerticesPerRow * 2);
 
                     indices.Add(lt);
                     indices.Add(patchIndexTop);
@@ -108,15 +108,15 @@
                 }
             }
 
-            for (int verticalIt = 0; verticalIt < 1; verticalIt++)
+            for (var verticalIt = 0; verticalIt < 1; verticalIt++)
             {
-                for (int horizontalIt = 0; horizontalIt < slices; horizontalIt++)
+                for (var horizontalIt = 0; horizontalIt < slices; horizontalIt++)
                 {
-                    short lb = (short)(horizontalIt + (verticalIt + 1) * (numVerticesPerRow));
-                    short rb = (short)((horizontalIt + 1) + (verticalIt + 1) * (numVerticesPerRow));
+                    var lb = (short)(horizontalIt + (verticalIt + 1) * (numVerticesPerRow));
+                    var rb = (short)((horizontalIt + 1) + (verticalIt + 1) * (numVerticesPerRow));
 
 
-                    short patchIndexBottom = (short)(numVerticesPerRow * 2 + 1);
+                    var patchIndexBottom = (short)(numVerticesPerRow * 2 + 1);
                     indices.Add(lb);
                     indices.Add(rb);
                     indices.Add(patchIndexBottom);
@@ -125,14 +125,14 @@
 
             this.Initialize(device, vertices, indices);
 
-            Vector3 vz = new Vector3(0, 1, 0);
+            var vz = new Vector3(0, 1, 0);
 
-            Vector3 p = startPoint - endPoint;
+            var p = startPoint - endPoint;
             p.Normalize();
-            Vector3 t = Vector3.Cross(vz, p);
+            var t = Vector3.Cross(vz, p);
 
-            double angle = 180 / Math.PI * Math.Acos((Vector3.Dot(vz, p) / p.Length()));
-            Vector3 middle = MathHelper.Middle2Vector(startPoint, endPoint);
+            var angle = 180 / Math.PI * Math.Acos((Vector3.Dot(vz, p) / p.Length()));
+            var middle = MathHelper.Middle2Vector(startPoint, endPoint);
             Transform = Matrix.RotationAxis(new Vector3(t.X, t.Y, t.Z), MathHelper.DegreeToRadian((float)angle)) *
                 Matrix.Translation(middle);
         }
@@ -142,7 +142,7 @@
             _commandList.SetVertexBuffer(0, VertexBufferView);
             _commandList.SetIndexBuffer(IndexBufferView);
             _commandList.PrimitiveTopology = _primitiveTopology;
-            _commandList.SetGraphicsRootConstantBufferView(0, this.VertexBufferGPU.GPUVirtualAddress + ObjCBIndex * BufferHelper.CalcConstantBufferByteSize<ObjectConstants>());
+           // _commandList.SetGraphicsRootConstantBufferView(0, this.VertexBufferGPU.GPUVirtualAddress + ObjCBIndex * BufferHelper.CalcConstantBufferByteSize<ObjectConstants>());
             _commandList.DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
         }
     }

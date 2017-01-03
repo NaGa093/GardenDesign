@@ -14,12 +14,12 @@
         private Matrix perspectiveMatrix;
         private Matrix orthographicMatrix;
 
-        public bool dragging = false;
-        public int startX = 0;
-        public int deltaX = 0;
+        public bool dragging;
+        public int startX;
+        public int deltaX;
 
-        public int startY = 0;
-        public int deltaY = 0;
+        public int startY;
+        public int deltaY;
 
         public Camera()
         {
@@ -31,32 +31,50 @@
 
         public Matrix WorldMatrix
         {
-            get { return worldMatrix; }
+            get
+            {
+                return worldMatrix;
+            }
         }
 
         public Matrix ViewMatrix
         {
-            get { return viewMatrix; }
+            get
+            {
+                return viewMatrix;
+            }
         }
 
         public Matrix PerspectiveMatrix
         {
-            get { return perspectiveMatrix; }
+            get
+            {
+                return perspectiveMatrix;
+            }
         }
 
         public Matrix OrthographicMatrix
         {
-            get { return orthographicMatrix; }
+            get
+            {
+                return orthographicMatrix;
+            }
         }
 
         public Matrix ViewPerspectiveMatrix
         {
-            get { return viewMatrix * perspectiveMatrix; }
+            get
+            {
+                return viewMatrix * perspectiveMatrix;
+            }
         }
 
         public Matrix ViewOrthographicMatrix
         {
-            get { return viewMatrix * orthographicMatrix; }
+            get
+            {
+                return viewMatrix * orthographicMatrix;
+            }
         }
 
         public Matrix ProjectionMatrix
@@ -69,7 +87,8 @@
 
         public Projections Projection
         {
-            get; set;
+            get;
+            set;
         }
 
         public void SetPerspective(float fov, float aspect, float znear, float zfar)

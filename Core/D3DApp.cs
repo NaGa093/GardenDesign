@@ -5,14 +5,17 @@
     using Core.Meshes;
     using Core.Meshes.Base;
     using Core.Primitives;
+
     using SharpDX;
     using SharpDX.Direct3D;
     using SharpDX.Direct3D12;
     using SharpDX.DXGI;
+
     using System;
     using System.Diagnostics;
     using System.Threading;
     using System.Threading.Tasks;
+
     using Device = SharpDX.Direct3D12.Device;
     using RectangleF = SharpDX.RectangleF;
     using Resource = SharpDX.Direct3D12.Resource;
@@ -72,9 +75,9 @@
         private Utilities.UploadBuffer<ObjectConstants> _objectCB;
         private DescriptorHeap _cbvHeap;
         private DescriptorHeap[] _descriptorHeaps;
-        private Mesh _grid;
-        private Mesh _sphere;
-        private Mesh _cylinder;
+        private Grid _grid;
+        private Sphere _sphere;
+        private Cylinder _cylinder;
 
         public D3DApp(IntPtr hInstance, int clientWidth, int clientHeight)
         {
@@ -144,7 +147,7 @@
             }
             catch (SharpDXException)
             {
-                Adapter warpAdapter = _factory.CreateSoftwareAdapter(_hInstance);
+                var warpAdapter = _factory.CreateSoftwareAdapter(_hInstance);
                 _device = new Device(warpAdapter, FeatureLevel.Level_11_0);
             }
 
@@ -158,7 +161,7 @@
 
         private void InitMultisampleQualityLevels()
         {
-            FeatureDataMultisampleQualityLevels msQualityLevels = new FeatureDataMultisampleQualityLevels();
+            var msQualityLevels = new FeatureDataMultisampleQualityLevels();
             msQualityLevels.Format = _backBufferFormat;
             msQualityLevels.SampleCount = 4;
             msQualityLevels.Flags = MultisampleQualityLevelFlags.None;
@@ -169,7 +172,7 @@
 
         private void CreateCommandObjects()
         {
-            CommandQueueDescription queueDesc = new CommandQueueDescription(CommandListType.Direct);
+            var queueDesc = new CommandQueueDescription(CommandListType.Direct);
 
             _commandQueue = _device.CreateCommandQueue(queueDesc);
 
@@ -296,7 +299,7 @@
 
         private void BuildConstantBuffers()
         {
-            int sizeInBytes = BufferHelper.CalcConstantBufferByteSize<ObjectConstants>();
+            var sizeInBytes = BufferHelper.CalcConstantBufferByteSize<ObjectConstants>();
 
             _objectCB = new Utilities.UploadBuffer<ObjectConstants>(_device, 1, true);
 
@@ -356,7 +359,7 @@
                 CpuDescriptorHandle rtvHeapHandle = _rtvHeap.CPUDescriptorHandleForHeapStart;
                 for (int i = 0; i < _swapChainBufferCount; i++)
                 {
-                    Resource backBuffer = _swapChain.GetBackBuffer<Resource>(i);
+                    var backBuffer = _swapChain.GetBackBuffer<Resource>(i);
                     _swapChainBuffers[i] = backBuffer;
                     _device.CreateRenderTargetView(backBuffer, null, rtvHeapHandle);
                     rtvHeapHandle += _rtvDescriptorSize;
@@ -469,19 +472,27 @@
 
         private void Update()
         {
+            var eye = new Vector3(1, 1, 20);
+            var target = new Vector3(0, 0, 0);
+            var up = new Vector3(0, 1, 0);
+
+            this.Camera.SetView(eye, target, up);
+
             var cb = new ObjectConstants
             {
-                WorldViewProj = Matrix.Transpose(this._grid.Transform * this.Camera.WorldMatrix * this.Camera.ViewMatrix * this.Camera.ProjectionMatrix)
+                WorldViewProj = Matrix.Transpose(this.Camera.ViewMatrix * this.Camera.ProjectionMatrix)
             };
 
             _objectCB.CopyData(0, ref cb);
-
+            return;
+#pragma warning disable CS0162 // Unreachable code detected
             cb = new ObjectConstants
+#pragma warning restore CS0162 // Unreachable code detected
             {
-                WorldViewProj = Matrix.Transpose(this._cylinder.Transform * this.Camera.WorldMatrix * this.Camera.ViewMatrix * this.Camera.ProjectionMatrix)
+                WorldViewProj = this._cylinder.Transform * this.Camera.ViewMatrix * this.Camera.ProjectionMatrix
             };
 
-            _objectCB.CopyData(0, ref cb);
+            //_objectCB.CopyData(1, ref cb);
         }
 
         private void Draw()

@@ -72,6 +72,7 @@
     <Compile Include="DirectXControl.Designer.cs">
       <DependentUpon>DirectXControl.cs</DependentUpon>
     </Compile>
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

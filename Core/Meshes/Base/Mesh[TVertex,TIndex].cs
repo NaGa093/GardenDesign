@@ -1,7 +1,6 @@
 ﻿namespace Core.Meshes.Base
 {
     using Core.Helpers;
-    using Core.Primitives;
 
     using SharpDX;
     using SharpDX.Direct3D;
@@ -120,28 +119,28 @@
 
         protected void Initialize(Device device, IEnumerable<TVertex> vertices = null, IEnumerable<TIndex> indices = null)
         {
-            TVertex[] vertexArray = vertices.ToArray();
-            TIndex[] indexArray = indices.ToArray();
+            var vertexArray = vertices.ToArray();
+            var indexArray = indices.ToArray();
 
-            int vertexBufferByteSize = Utilities.SizeOf(vertexArray);
+            var vertexBufferByteSize = Utilities.SizeOf(vertexArray);
             Resource vertexBufferUploader;
-            Resource vertexBuffer = BufferHelper.CreateDefaultBuffer(device, _commandList, vertexArray, vertexBufferByteSize, out vertexBufferUploader);
+            var vertexBuffer = BufferHelper.CreateDefaultBuffer(device, _commandList, vertexArray, vertexBufferByteSize, out vertexBufferUploader);
 
-            int indexBufferByteSize = Utilities.SizeOf(indexArray);
+            var indexBufferByteSize = Utilities.SizeOf(indexArray);
             Resource indexBufferUploader;
-            Resource indexBuffer = BufferHelper.CreateDefaultBuffer(device, _commandList, indexArray, indexBufferByteSize, out indexBufferUploader);
+            var indexBuffer = BufferHelper.CreateDefaultBuffer(device, _commandList, indexArray, indexBufferByteSize, out indexBufferUploader);
 
             VertexByteStride = Utilities.SizeOf<TVertex>();
             VertexBufferByteSize = vertexBufferByteSize;
             VertexBufferGPU = vertexBuffer;
             VertexBufferCPU = vertexArray;
             IndexCount = indexArray.Length;
-            IndexFormat = GetIndexFormat<TIndex>();
+            IndexFormat = GetIndexFormat();
             IndexBufferByteSize = indexBufferByteSize;
             IndexBufferGPU = indexBuffer;
             IndexBufferCPU = indexArray;
 
-            this._toDispose = new List<IDisposable>()
+            this._toDispose = new List<IDisposable>
             {
                 vertexBuffer, vertexBufferUploader,
                 indexBuffer, indexBufferUploader
@@ -165,7 +164,7 @@
             }   
         }
 
-        private static Format GetIndexFormat<TIndex>()
+        private static Format GetIndexFormat()
         {
             var format = Format.Unknown;
 

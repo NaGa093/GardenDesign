@@ -1,6 +1,7 @@
 ﻿namespace Core.Utilities
 {
     using SharpDX.Direct3D12;
+
     using System;
     using System.Runtime.InteropServices;
 
@@ -24,7 +25,10 @@
             _resourcePointer = Resource.Map(0);
         }
 
-        public Resource Resource { get; }
+        public Resource Resource
+        {
+            get;
+        }
 
         public void CopyData(int elementIndex, ref T data)
         {

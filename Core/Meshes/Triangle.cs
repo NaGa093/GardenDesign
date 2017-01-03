@@ -30,7 +30,7 @@
 
             short[] indices =
             {
-                0,1,2
+                0, 1, 2
             };
 
             this.Initialize(device, vertices, indices);

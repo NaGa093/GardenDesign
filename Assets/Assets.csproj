@@ -49,6 +49,7 @@
     <Compile Include="Enums\Orientations.cs" />
     <Compile Include="Enums\RulerAlignments.cs" />
     <Compile Include="Enums\ScaleModes.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
