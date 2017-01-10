@@ -3,7 +3,6 @@
     using Core.Cameras;
     using Core.Helpers;
     using Core.Meshes;
-    using Core.Meshes.Base;
     using Core.Primitives;
 
     using SharpDX;
@@ -12,9 +11,7 @@
     using SharpDX.DXGI;
 
     using System;
-    using System.Diagnostics;
     using System.Threading;
-    using System.Threading.Tasks;
 
     using Device = SharpDX.Direct3D12.Device;
     using RectangleF = SharpDX.RectangleF;
@@ -22,7 +19,7 @@
 
     public class D3DApp : IDisposable
     {
-        private IntPtr _hInstance;
+        private IntPtr handleIntPtr;
 
         private Factory _factory;
         private Device _device;
@@ -48,13 +45,12 @@
         private int _rtvDescriptorSize;
         private int _dsvDescriptorSize;
         private int _cbvSrvUavDescriptorSize;
-        private int _clientWidth;
-        private int _clientHeight;
+
         private int _m4xMsaaQuality;
-        private int _frameCount;
+        
         private bool _m4xMsaaState;
-        private bool _paused;
-        private bool _running;
+        
+        
         private long _currentFence;
 
         private int _msaaCount => _m4xMsaaState ? 4 : 1;
@@ -63,12 +59,8 @@
         private int _dsvDescriptorCount => 1;
 
         private const int _swapChainBufferCount = 2;
-        private readonly Stopwatch _fpsTimer = new Stopwatch();
+        
 
-        private ShaderBytecode _mvsByteCode;
-        private ShaderBytecode _mpsByteCode;
-
-        private InputLayoutDescription _inputLayout;
         private PipelineState _pso;
         private RootSignature _rootSignature;
 
@@ -79,13 +71,12 @@
         private Sphere _sphere;
         private Cylinder _cylinder;
 
-        public D3DApp(IntPtr hInstance, int clientWidth, int clientHeight)
+        public D3DApp(IntPtr handleIntPtr)
         {
-            _hInstance = hInstance;
-            _clientWidth = clientWidth;
-            _clientHeight = clientHeight;
+            this.handleIntPtr = handleIntPtr;
 
             InitDirect3D();
+
             CreateCommandObjects();
             CreateSwapChain();
             CreateRtvAndDsvDescriptorHeaps();
@@ -95,15 +86,14 @@
             BuildDescriptorHeaps();
             BuildConstantBuffers();
             BuildRootSignature();
-            BuildShadersAndInputLayout();
             BuildMesh();
-            BuildPSO();
+
+            _pso = _device.CreateGraphicsPipelineState(PipelinesStateObject.New(_rootSignature, _msaaCount, _msaaQuality, _depthStencilFormat, _backBufferFormat));
 
             _commandList.Close();
             _commandQueue.ExecuteCommandList(_commandList);
-            FlushCommandQueue();
 
-            _running = true;
+            FlushCommandQueue();
 
             Camera = new OrbitCamera();
         }
@@ -111,24 +101,6 @@
         public OrbitCamera Camera
         {
             get;
-        }
-
-        public bool M4xMsaaState
-        {
-            get { return _m4xMsaaState; }
-            set
-            {
-                if (_m4xMsaaState != value)
-                {
-                    _m4xMsaaState = value;
-
-                    if (_running)
-                    {
-                        CreateSwapChain();
-                        Resize();
-                    }
-                }
-            }
         }
 
         private void InitDirect3D()
@@ -147,7 +119,7 @@
             }
             catch (SharpDXException)
             {
-                var warpAdapter = _factory.CreateSoftwareAdapter(_hInstance);
+                var warpAdapter = _factory.CreateSoftwareAdapter(this.handleIntPtr);
                 _device = new Device(warpAdapter, FeatureLevel.Level_11_0);
             }
 
@@ -195,8 +167,6 @@
             {
                 ModeDescription = new ModeDescription
                 {
-                    Width = _clientWidth,
-                    Height = _clientHeight,
                     Format = _backBufferFormat,
                     RefreshRate = new Rational(60, 1),
                     Scaling = DisplayModeScaling.Unspecified,
@@ -211,7 +181,7 @@
                 BufferCount = _swapChainBufferCount,
                 SwapEffect = SwapEffect.FlipDiscard,
                 Flags = SwapChainFlags.AllowModeSwitch,
-                OutputHandle = _hInstance,
+                OutputHandle = this.handleIntPtr,
                 IsWindowed = true
             };
 
@@ -236,40 +206,6 @@
                 Type = DescriptorHeapType.DepthStencilView
             };
             _dsvHeap = _device.CreateDescriptorHeap(dsvHeapDesc);
-        }
-
-        private void BuildShadersAndInputLayout()
-        {
-            _mvsByteCode = ShaderHelper.CompileShader("Shaders\\Color.hlsl", "VS", "vs_5_0");
-            _mpsByteCode = ShaderHelper.CompileShader("Shaders\\Color.hlsl", "PS", "ps_5_0");
-
-            _inputLayout = new InputLayoutDescription(new[] // TODO: API suggestion: Add params overload
-            {
-                new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
-                new InputElement("COLOR", 0, Format.R32G32B32A32_Float, 12, 0)
-            });
-        }
-
-        private void BuildPSO()
-        {
-            var psoDesc = new GraphicsPipelineStateDescription
-            {
-                InputLayout = _inputLayout,
-                RootSignature = _rootSignature,
-                VertexShader = _mvsByteCode,
-                PixelShader = _mpsByteCode,
-                RasterizerState = RasterizerStateDescription.Default(),
-                BlendState = BlendStateDescription.Default(),
-                DepthStencilState = DepthStencilStateDescription.Default(),
-                SampleMask = int.MaxValue,
-                PrimitiveTopologyType = PrimitiveTopologyType.Triangle,
-                RenderTargetCount = 1,
-                SampleDescription = new SampleDescription(_msaaCount, _msaaQuality),
-                DepthStencilFormat = _depthStencilFormat
-            };
-            psoDesc.RenderTargetFormats[0] = _backBufferFormat;
-
-            _pso = _device.CreateGraphicsPipelineState(psoDesc);
         }
 
         private void BuildRootSignature()
@@ -322,24 +258,11 @@
 
         public void Resize(int clientWidth, int clientHeight)
         {
-            _paused = true;
-
-            _clientWidth = clientWidth;
-            _clientHeight = clientHeight;
-
-            Resize();
-
-            this.Camera.SetPerspective(MathUtil.PiOverFour, (float)_clientWidth / _clientHeight, 1.0f, 1000.0f);
-            this.Camera.SetOrthographic((float)_clientWidth / 100, (float)_clientHeight/ 100, -15000f, 15000.0f);
-
-            _paused = false;
-        }
-
-        private void Resize()
-        {
             lock (_commandList)
             {
-                FlushCommandQueue();
+                //this.CreateSwapChain(clientWidth, clientHeight);
+
+                this.FlushCommandQueue();
 
                 _commandList.Reset(_commandAllocator, null);
 
@@ -352,7 +275,7 @@
 
                 _swapChain.ResizeBuffers(
                     _swapChainBufferCount,
-                    _clientWidth, _clientHeight,
+                    clientWidth, clientHeight,
                     _backBufferFormat,
                     SwapChainFlags.AllowModeSwitch);
 
@@ -369,8 +292,8 @@
                 {
                     Dimension = ResourceDimension.Texture2D,
                     Alignment = 0,
-                    Width = _clientWidth,
-                    Height = _clientHeight,
+                    Width = clientWidth,
+                    Height = clientHeight,
                     DepthOrArraySize = 1,
                     MipLevels = 1,
                     Format = Format.R24G8_Typeless,
@@ -414,8 +337,11 @@
 
                 FlushCommandQueue();
 
-                _viewport = new ViewportF(0, 0, _clientWidth, _clientHeight, 0.0f, 1.0f);
-                _scissorRectangle = new RectangleF(0, 0, _clientWidth, _clientHeight);
+                _viewport = new ViewportF(0, 0, clientWidth, clientHeight, 0.0f, 1.0f);
+                _scissorRectangle = new RectangleF(0, 0, clientWidth, clientHeight);
+
+                this.Camera.SetPerspective(MathUtil.PiOverFour, (float)clientWidth / clientHeight, 1.0f, 1000.0f);
+                this.Camera.SetOrthographic((float)clientWidth / 100, (float)clientHeight / 100, -15000f, 15000.0f);
             }
         }
 
@@ -433,44 +359,7 @@
             }
         }
 
-        private void CalculateFrameRateStats()
-        {
-            _frameCount++;
-            if (_fpsTimer.ElapsedMilliseconds > 1000L)
-            {
-                var fps = 1000.0 * (double)_frameCount / (double)_fpsTimer.ElapsedMilliseconds;
-                var ms = (float)_fpsTimer.ElapsedMilliseconds / (float)_frameCount;
-                var text = string.Format("FPS: {0:F2} ({1:F2}ms)", fps, ms);
-                Console.WriteLine(text);
-                _fpsTimer.Reset();
-                _fpsTimer.Stop();
-                _fpsTimer.Start();
-                _frameCount = 0;
-            }
-        }
-
-        public void Run()
-        {
-            _fpsTimer.Start();
-            Task.Factory.StartNew(() =>
-            {
-                while (_running)
-                {
-                    if (!_paused)
-                    {
-                        CalculateFrameRateStats();
-                        Update();
-                        Draw();
-                    }
-                    else
-                    {
-                        Thread.Sleep(100);
-                    }
-                }
-            });
-        }
-
-        private void Update()
+        public void Update()
         {
             var eye = new Vector3(1, 1, 20);
             var target = new Vector3(0, 0, 0);
@@ -484,22 +373,13 @@
             };
 
             _objectCB.CopyData(0, ref cb);
-            return;
-#pragma warning disable CS0162 // Unreachable code detected
-            cb = new ObjectConstants
-#pragma warning restore CS0162 // Unreachable code detected
-            {
-                WorldViewProj = this._cylinder.Transform * this.Camera.ViewMatrix * this.Camera.ProjectionMatrix
-            };
-
-            //_objectCB.CopyData(1, ref cb);
         }
 
-        private void Draw()
+        public void Draw(bool paused)
         {
             lock (_commandList)
             {
-                if (_paused || _swapChain.IsDisposed)
+                if (paused || _swapChain.IsDisposed)
                 {
                     return;
                 }
@@ -520,7 +400,7 @@
                 //Draw
                 _grid.Draw();
                 _cylinder.Draw();
-                //_sphere.Draw();
+                _sphere.Draw();
 
                 _commandList.ResourceBarrierTransition(_currentBackBuffer, ResourceStates.RenderTarget, ResourceStates.Present);
                 _commandList.Close();
@@ -535,9 +415,6 @@
 
         public void Dispose()
         {
-            _running = false;
-            _paused = true;
-
             FlushCommandQueue();
 
             _rtvHeap?.Dispose();

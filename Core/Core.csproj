@@ -81,6 +81,7 @@
     <Compile Include="Cameras\Base\Camera.cs" />
     <Compile Include="Cameras\OrbitCamera.cs" />
     <Compile Include="D3DApp.cs" />
+    <Compile Include="PipelinesStateObject.cs" />
     <Compile Include="Enums\Projections.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Meshes\Base\Mesh.cs" />
@@ -96,16 +97,20 @@
     <Compile Include="Primitives\ObjectConstants.cs" />
     <Compile Include="Primitives\Vertex.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Screen.cs" />
     <Compile Include="Utilities\UploadBuffer.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
     <Content Include="Shaders\Color.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Device\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

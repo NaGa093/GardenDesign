@@ -1,20 +1,18 @@
 ﻿namespace Core.Cameras
 {
-    using Core.Cameras.Base;
-
     using SharpDX;
 
-    public class OrbitCamera : Camera
+    public class OrbitCamera : Base.Camera
     {
-        private const float _maxZoom = 3.0f;
+        private const float MaxZoom = 3.0f;
 
         public OrbitCamera()
         {
-            this.eye = new Vector3(4, 2, 0);
-            this.target = new Vector3(0, 0, 0);
-            this.up = new Vector3(0, 1, 0);
+            this.Eye = new Vector3(4, 2, 0);
+            this.Target = new Vector3(0, 0, 0);
+            this.Up = new Vector3(0, 1, 0);
 
-            this.SetView(eye, target, up);
+            this.SetView(Eye, Target, Up);
         }
 
         public void RotateY(int value)
@@ -22,29 +20,29 @@
             var rotY = (value / 100.0f);
             var rotMat = Matrix.RotationY(rotY);
 
-            this.eye = Vector3.TransformCoordinate(eye, rotMat);
-            this.SetView(eye, target, up);
+            this.Eye = Vector3.TransformCoordinate(Eye, rotMat);
+            this.SetView(Eye, Target, Up);
         }
 
         public void RotateOrtho(int value)
         {
-            var viewDir = target - eye;
-            var orhto = Vector3.Cross(viewDir, up);
+            var viewDir = Target - Eye;
+            var orhto = Vector3.Cross(viewDir, Up);
 
             var rotOrtho = (value / 100.0f);
             var rotOrthoMat = Matrix.RotationAxis(orhto, rotOrtho);
 
-            var eyeLocal = eye - target;
+            var eyeLocal = Eye - Target;
             eyeLocal = Vector3.TransformCoordinate(eyeLocal, rotOrthoMat);
 
-            var newEye = eyeLocal + target;
-            var newViewDir = target - newEye;
-            var cosAngle = Vector3.Dot(newViewDir, up) / (newViewDir.Length() * up.Length());
+            var newEye = eyeLocal + Target;
+            var newViewDir = Target - newEye;
+            var cosAngle = Vector3.Dot(newViewDir, Up) / (newViewDir.Length() * Up.Length());
 
             if (cosAngle < 0.9f && cosAngle > -0.9f)
             {
-                this.eye = eyeLocal + target;
-                this.SetView(eye, target, up);
+                this.Eye = eyeLocal + Target;
+                this.SetView(Eye, Target, Up);
             }
         }
 
@@ -58,14 +56,14 @@
             }
             else
             {
-                if ((eye - target).Length() > _maxZoom)
+                if ((Eye - Target).Length() > MaxZoom)
                     scaleFactor = 0.9f;
             }
 
             var scale = Matrix.Scaling(scaleFactor, scaleFactor, scaleFactor);
-            eye = Vector3.TransformCoordinate(eye, scale);
+            Eye = Vector3.TransformCoordinate(Eye, scale);
 
-            this.SetView(eye, target, up);
+            this.SetView(Eye, Target, Up);
         }
     }
 }
