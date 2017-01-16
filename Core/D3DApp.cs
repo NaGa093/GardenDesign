@@ -150,8 +150,9 @@
         {
             this.commandObjects.GetGraphicsCommandList.Reset(commandObjects.GetCommandAllocator, null);
 
+            this.meshes.AddRange(CoordinateAxis.New(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.LineList));
             //this.meshes.Add(new Grid(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.LineList, 10, 1.0f, Color.White));
-            this.meshes.Add(new Cylinder(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, new Vector3(0, 0, 0), new Vector3(4, 4, 4), 0, 1, 10, 10, Color.Black));
+            //this.meshes.Add(new Cylinder(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, new Vector3(0, 0, 0), new Vector3(4, 4, 4), 0, 1, 10, 10, Color.Black));
             //this.meshes.Add(new Sphere(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, 2, 10, 10, Color.Red));
 
             this.commandObjects.GetGraphicsCommandList.Close();
@@ -298,7 +299,7 @@
 
                 this.commandObjects.GetGraphicsCommandList.ResourceBarrierTransition(CurrentBackBuffer, ResourceStates.Present, ResourceStates.RenderTarget);
 
-                this.commandObjects.GetGraphicsCommandList.ClearRenderTargetView(CurrentBackBufferView, Color.LightBlue);
+                this.commandObjects.GetGraphicsCommandList.ClearRenderTargetView(CurrentBackBufferView, Color.White);
                 this.commandObjects.GetGraphicsCommandList.ClearDepthStencilView(descriptorHeapObjects.DepthStencilViewDescriptorHeap.CPUDescriptorHandleForHeapStart, ClearFlags.FlagsDepth | ClearFlags.FlagsStencil, 1.0f, 0);
 
                 this.commandObjects.GetGraphicsCommandList.SetRenderTargets(CurrentBackBufferView, descriptorHeapObjects.DepthStencilViewDescriptorHeap.CPUDescriptorHandleForHeapStart);

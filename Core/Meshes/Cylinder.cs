@@ -133,8 +133,6 @@
                 indices.Add((short)(baseIndex + i));
             }
 
-            this.Initialize(device, vertices, indices);
-
             var vz = new Vector3(0, 1, 0);
 
             var p = startPoint - endPoint;
@@ -145,6 +143,8 @@
             var middle = MathHelper.Middle2Vector(startPoint, endPoint);
             World = Matrix.RotationAxis(new Vector3(t.X, t.Y, t.Z), (float)angle) *
                 Matrix.Translation(middle);
+
+            this.Initialize(device, vertices, indices);
         }
 
         public new void Draw()
