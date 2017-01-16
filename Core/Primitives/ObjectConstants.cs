@@ -7,6 +7,6 @@
     [StructLayout(LayoutKind.Sequential, Pack = 4)]
     internal struct ObjectConstants
     {
-        public Matrix WorldViewProj;
+        public Matrix World;
     }
 }

@@ -20,107 +20,117 @@
            PrimitiveTopology primitiveTopology,
            Vector3 startPoint,
            Vector3 endPoint,
-           float radiusBottom,
-           float radiusTop,
-           int slices,
+           float bottomRadius,
+           float topRadius,
+           int sliceCount,
+           int stackCount,
            Color color,
            string name = "Default")
         {
-            this._commandList = commandList;
-            this._primitiveTopology = primitiveTopology;
+            this.CommandList = commandList;
+            this.PrimitiveTopology = primitiveTopology;
 
             this.Name = name;
 
             var vertices = new List<Vertex>();
             var indices = new List<short>();
 
-            var length = MathHelper.DistanceBetweenVector(startPoint, endPoint);
+            var height = MathHelper.DistanceBetweenVector(startPoint, endPoint);
+            float stackHeight = height / stackCount;
+            float radiusStep = (topRadius - bottomRadius) / stackCount;
+            int ringCount = stackCount + 1;
 
-            var numVerticesPerRow = slices + 1;
-
-            var theta = 0.0f;
-            var horizontalAngularStride = ((float)Math.PI * 2) / slices;
-
-            for (var verticalIt = 0; verticalIt < 2; verticalIt++)
+            for (int i = 0; i < ringCount; i++)
             {
-                for (var horizontalIt = 0; horizontalIt < numVerticesPerRow; horizontalIt++)
+                float y = -0.5f * height + i * stackHeight;
+                float r = bottomRadius + i * radiusStep;
+
+                float dTheta = 2.0f * MathUtil.Pi / sliceCount;
+                for (int j = 0; j <= sliceCount; j++)
                 {
-                    float x;
-                    float y;
-                    float z;
+                    float c = MathHelper.Cosf(j * dTheta);
+                    float s = MathHelper.Sinf(j * dTheta);
 
-                    theta = (horizontalAngularStride * horizontalIt);
+                    var pos = new Vector3(r * c, y, r * s);
+                    var uv = new Vector2((float)j / sliceCount, 1f - (float)i / stackCount);
+                    var tangent = new Vector3(-s, 0.0f, c);
 
-                    if (verticalIt == 0)
-                    {
-                        // upper circle
-                        x = radiusTop * (float)Math.Cos(theta);
-                        y = radiusTop * (float)Math.Sin(theta);
-                        z = length / 2 + 1;
-                    }
-                    else
-                    {
-                        // lower circle
-                        x = radiusBottom * (float)Math.Cos(theta);
-                        y = radiusBottom * (float)Math.Sin(theta);
-                        z = -length / 2 + 1;
-                    }
+                    float dr = bottomRadius - topRadius;
+                    var bitangent = new Vector3(dr * c, -height, dr * s);
 
-                    vertices.Add(new Vertex { Pos = new Vector3(x, z, y), Color = color.ToVector4() });
+                    var normal = Vector3.Cross(tangent, bitangent);
+                    normal.Normalize();
+                    vertices.Add(new Vertex { Pos = pos, Color = color.ToColor4() });
                 }
             }
 
-            vertices.Add(new Vertex { Pos = new Vector3(0, length / 2 + 1, 0), Color = color.ToVector4() });
-            vertices.Add(new Vertex { Pos = new Vector3(0, -length / 2 + 1, 0), Color = color.ToVector4() });
+            int ringVertexCount = sliceCount + 1;
 
-            for (var verticalIt = 0; verticalIt < 1; verticalIt++)
+            for (int i = 0; i < stackCount; i++)
             {
-                for (var horizontalIt = 0; horizontalIt < slices; horizontalIt++)
+                for (int j = 0; j < sliceCount; j++)
                 {
-                    var lt = (short)(horizontalIt + verticalIt * (numVerticesPerRow));
-                    var rt = (short)((horizontalIt + 1) + verticalIt * (numVerticesPerRow));
+                   indices.Add((short)(i * ringVertexCount + j));
+                   indices.Add((short)((i + 1) * ringVertexCount + j));
+                   indices.Add((short)((i + 1) * ringVertexCount + j + 1));
 
-                    var lb = (short)(horizontalIt + (verticalIt + 1) * (numVerticesPerRow));
-                    var rb = (short)((horizontalIt + 1) + (verticalIt + 1) * (numVerticesPerRow));
-
-                    indices.Add(lt);
-                    indices.Add(rt);
-                    indices.Add(lb);
-
-                    indices.Add(rt);
-                    indices.Add(rb);
-                    indices.Add(lb);
+                   indices.Add((short)(i * ringVertexCount + j));
+                   indices.Add((short)((i + 1) * ringVertexCount + j + 1));
+                   indices.Add((short)(i * ringVertexCount + j + 1));
                 }
             }
+            
+            //Top
+            int baseIndex = vertices.Count;
+            float dtheta = 2.0f * MathUtil.Pi / sliceCount;
 
-            for (var verticalIt = 0; verticalIt < 1; verticalIt++)
+            for (int i = 0; i <= sliceCount; i++)
             {
-                for (var horizontalIt = 0; horizontalIt < slices; horizontalIt++)
-                {
-                    var lt = (short)(horizontalIt + verticalIt * (numVerticesPerRow));
-                    var rt = (short)((horizontalIt + 1) + verticalIt * (numVerticesPerRow));
+                float x = topRadius * MathHelper.Cosf(i * dtheta);
+                float z = topRadius * MathHelper.Sinf(i * dtheta);
+                float u = x / height + 0.5f;
+                float v = z / height + 0.5f;
 
-                    var patchIndexTop = (short)(numVerticesPerRow * 2);
-
-                    indices.Add(lt);
-                    indices.Add(patchIndexTop);
-                    indices.Add(rt);
-                }
+                vertices.Add(new Vertex { Pos = new Vector3(x, 0.5f * height, z),  Color = color.ToColor4() });
             }
 
-            for (var verticalIt = 0; verticalIt < 1; verticalIt++)
+            vertices.Add(new Vertex { Pos = new Vector3(0, 0.5f * height, 0),  Color = color.ToColor4() });
+
+            int centerIndex = vertices.Count - 1;
+
+            for (int i = 0; i < sliceCount; i++)
             {
-                for (var horizontalIt = 0; horizontalIt < slices; horizontalIt++)
-                {
-                    var lb = (short)(horizontalIt + (verticalIt + 1) * (numVerticesPerRow));
-                    var rb = (short)((horizontalIt + 1) + (verticalIt + 1) * (numVerticesPerRow));
+                indices.Add((short)centerIndex);
+                indices.Add((short)(baseIndex + i + 1));
+                indices.Add((short)(baseIndex + i));
+            }
 
+            //Bottom
+            baseIndex = vertices.Count;
+            for (int i = 0; i <= sliceCount; i++)
+            {
+                float x = bottomRadius * MathHelper.Cosf(i * dtheta);
+                float z = bottomRadius * MathHelper.Sinf(i * dtheta);
 
-                    var patchIndexBottom = (short)(numVerticesPerRow * 2 + 1);
-                    indices.Add(lb);
-                    indices.Add(rb);
-                    indices.Add(patchIndexBottom);
-                }
+                // Scale down by the height to try and make top cap texture coord area
+                // proportional to base.
+                float u = x / height + 0.5f;
+                float v = z / height + 0.5f;
+
+                vertices.Add(new Vertex { Pos = new Vector3(x, -0.5f * height, z), Color = color.ToColor4() });
+            }
+
+            // Cap center vertex.
+            vertices.Add(new Vertex { Pos = new Vector3(0, -0.5f * height, 0), Color = color.ToColor4() });
+
+            // Cache the index of center vertex.
+            centerIndex = vertices.Count - 1;
+
+            for (int i = 0; i < sliceCount; i++)
+            {
+                indices.Add((short)centerIndex);
+                indices.Add((short)(baseIndex + i + 1));
+                indices.Add((short)(baseIndex + i));
             }
 
             this.Initialize(device, vertices, indices);
@@ -131,19 +141,19 @@
             p.Normalize();
             var t = Vector3.Cross(vz, p);
 
-            var angle = 180 / Math.PI * Math.Acos((Vector3.Dot(vz, p) / p.Length()));
+            var angle = 180 / Math.PI * Math.Acos(Vector3.Dot(vz, p) / p.Length());
             var middle = MathHelper.Middle2Vector(startPoint, endPoint);
-            Transform = Matrix.RotationAxis(new Vector3(t.X, t.Y, t.Z), MathHelper.DegreeToRadian((float)angle)) *
+            World = Matrix.RotationAxis(new Vector3(t.X, t.Y, t.Z), (float)angle) *
                 Matrix.Translation(middle);
         }
 
         public new void Draw()
         {
-            _commandList.SetVertexBuffer(0, VertexBufferView);
-            _commandList.SetIndexBuffer(IndexBufferView);
-            _commandList.PrimitiveTopology = _primitiveTopology;
+            CommandList.SetVertexBuffer(0, VertexBufferView);
+            CommandList.SetIndexBuffer(IndexBufferView);
+            CommandList.PrimitiveTopology = PrimitiveTopology;
            // _commandList.SetGraphicsRootConstantBufferView(0, this.VertexBufferGPU.GPUVirtualAddress + ObjCBIndex * BufferHelper.CalcConstantBufferByteSize<ObjectConstants>());
-            _commandList.DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
+            CommandList.DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
         }
     }
 }

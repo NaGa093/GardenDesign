@@ -80,7 +80,11 @@
   <ItemGroup>
     <Compile Include="Cameras\Base\Camera.cs" />
     <Compile Include="Cameras\OrbitCamera.cs" />
+    <Compile Include="CommandObjects.cs" />
     <Compile Include="D3DApp.cs" />
+    <Compile Include="DepthStencilBufferResource.cs" />
+    <Compile Include="DescriptorHeapObjects.cs" />
+    <Compile Include="FrameResource.cs" />
     <Compile Include="PipelinesStateObject.cs" />
     <Compile Include="Enums\Projections.cs" />
     <Compile Include="GlobalSuppressions.cs" />
@@ -95,9 +99,12 @@
     <Compile Include="Meshes\Sphere.cs" />
     <Compile Include="Meshes\Triangle.cs" />
     <Compile Include="Primitives\ObjectConstants.cs" />
+    <Compile Include="Primitives\PassConstants.cs" />
     <Compile Include="Primitives\Vertex.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RootSignatureObject.cs" />
     <Compile Include="Screen.cs" />
+    <Compile Include="SwapChainObject.cs" />
     <Compile Include="Utilities\UploadBuffer.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -106,7 +113,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Shaders\Color.hlsl">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup>

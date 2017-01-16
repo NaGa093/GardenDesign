@@ -8,6 +8,7 @@
     public struct Vertex
     {
         public Vector3 Pos;
+        public Vector3 Normal;
         public Vector4 Color;
     }
 }

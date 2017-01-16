@@ -8,7 +8,7 @@
         private Matrix perspectiveMatrix;
         private Matrix orthographicMatrix;
 
-        protected Vector3 Eye;
+        public Vector3 Eye;
         protected Vector3 Target;
         protected Vector3 Up;
 

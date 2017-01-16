@@ -4,6 +4,7 @@
     using Core.Helpers;
     using Core.Meshes;
     using Core.Primitives;
+    using Core.Meshes.Base;
 
     using SharpDX;
     using SharpDX.Direct3D;
@@ -12,6 +13,7 @@
 
     using System;
     using System.Threading;
+    using System.Collections.Generic;
 
     using Device = SharpDX.Direct3D12.Device;
     using RectangleF = SharpDX.RectangleF;
@@ -19,421 +21,360 @@
 
     public class D3DApp : IDisposable
     {
-        private IntPtr handleIntPtr;
+        private const int NumFrameResources = 3;
+        private const Format DepthStencilFormat = Format.D24_UNorm_S8_UInt;
+        private const Format BackBufferFormat = Format.R8G8B8A8_UNorm;
+        private const int SwapChainBufferCount = 2;
+        private Resource CurrentBackBuffer => swapChainBuffers[swapChain.CurrentBackBufferIndex];
+        private CpuDescriptorHandle CurrentBackBufferView => descriptorHeapObjects.RenderTargetViewDescriptorHeap.CPUDescriptorHandleForHeapStart + swapChain.CurrentBackBufferIndex * rtvDescriptorSize;
 
-        private Factory _factory;
-        private Device _device;
-        private SwapChain3 _swapChain;
-        private Fence _fence;
-        private AutoResetEvent _fenceEvent;
-        private CommandQueue _commandQueue;
-        private CommandAllocator _commandAllocator;
-        private GraphicsCommandList _commandList;
-        private Resource _depthStencilBuffer;
-        private DescriptorHeap _rtvHeap;
-        private DescriptorHeap _dsvHeap;
-        private ViewportF _viewport;
-        private RectangleF _scissorRectangle;
 
-        private Resource _currentBackBuffer => _swapChainBuffers[_swapChain.CurrentBackBufferIndex];
-        private CpuDescriptorHandle _currentBackBufferView => _rtvHeap.CPUDescriptorHandleForHeapStart + _swapChain.CurrentBackBufferIndex * _rtvDescriptorSize;
-        private CpuDescriptorHandle _depthStencilView => _dsvHeap.CPUDescriptorHandleForHeapStart;
-        private readonly Resource[] _swapChainBuffers = new Resource[_swapChainBufferCount];
-        private const Format _depthStencilFormat = Format.D24_UNorm_S8_UInt;
-        private const Format _backBufferFormat = Format.R8G8B8A8_UNorm;
-
-        private int _rtvDescriptorSize;
-        private int _dsvDescriptorSize;
-        private int _cbvSrvUavDescriptorSize;
-
-        private int _m4xMsaaQuality;
+        private Factory factory;
+        private Device device;
+        private Fence fence;
+        private AutoResetEvent fenceEvent;
+        private Resource depthStencilBuffer;
+        private ViewportF viewport;
+        private RectangleF scissorRectangle;
+       
+        private int currFrameResourceIndex;
+        private int rtvDescriptorSize;
+        private int m4XMsaaQuality;
+        private long currentFence;
+        private int MsaaCount => m4XMsaaState ? 4 : 1;
+        private int MsaaQuality => m4XMsaaState ? m4XMsaaQuality - 1 : 0;
         
-        private bool _m4xMsaaState;
-        
-        
-        private long _currentFence;
+        private readonly List<Mesh> meshes; 
+        private readonly PipelineState pso;
+        private readonly bool m4XMsaaState;
+        private readonly OrbitCamera camera;
+        private readonly IntPtr handleIntPtr;
+        private readonly SwapChain3 swapChain;
+        private readonly RootSignature rootSignature;
+        private readonly Resource[] swapChainBuffers;
+        private readonly CommandObjects commandObjects;
+        private readonly DescriptorHeapObjects descriptorHeapObjects;
+        private readonly List<FrameResource> frameResources;
+        private readonly List<AutoResetEvent> fenceEvents;
+        private FrameResource CurrFrameResource => frameResources[currFrameResourceIndex];
+        private AutoResetEvent CurrentFenceEvent => fenceEvents[currFrameResourceIndex];
 
-        private int _msaaCount => _m4xMsaaState ? 4 : 1;
-        private int _msaaQuality => _m4xMsaaState ? _m4xMsaaQuality - 1 : 0;
-        private int _rtvDescriptorCount => _swapChainBufferCount;
-        private int _dsvDescriptorCount => 1;
-
-        private const int _swapChainBufferCount = 2;
-        
-
-        private PipelineState _pso;
-        private RootSignature _rootSignature;
-
-        private Utilities.UploadBuffer<ObjectConstants> _objectCB;
-        private DescriptorHeap _cbvHeap;
-        private DescriptorHeap[] _descriptorHeaps;
-        private Grid _grid;
-        private Sphere _sphere;
-        private Cylinder _cylinder;
+        private PassConstants mainPassCb;
 
         public D3DApp(IntPtr handleIntPtr)
         {
             this.handleIntPtr = handleIntPtr;
 
-            InitDirect3D();
+            this.m4XMsaaState = false;
+            this.swapChainBuffers = new Resource[SwapChainBufferCount];
+            this.frameResources = new List<FrameResource>(NumFrameResources);
+            this.fenceEvents = new List<AutoResetEvent>(NumFrameResources);
+            this.mainPassCb = PassConstants.Default;
+            meshes = new List<Mesh>();
 
-            CreateCommandObjects();
-            CreateSwapChain();
-            CreateRtvAndDsvDescriptorHeaps();
+            this.InitDirect3D();
+            this.commandObjects = new CommandObjects(device);
 
-            _commandList.Reset(_commandAllocator, null);
 
-            BuildDescriptorHeaps();
-            BuildConstantBuffers();
-            BuildRootSignature();
-            BuildMesh();
+            this.swapChain = SwapChainObject.New(this.handleIntPtr, this.factory, this.commandObjects.GetCommandQueue, BackBufferFormat, SwapChainBufferCount, MsaaCount, MsaaQuality);
+            this.descriptorHeapObjects = new DescriptorHeapObjects(device, SwapChainBufferCount, 1);
 
-            _pso = _device.CreateGraphicsPipelineState(PipelinesStateObject.New(_rootSignature, _msaaCount, _msaaQuality, _depthStencilFormat, _backBufferFormat));
+            
 
-            _commandList.Close();
-            _commandQueue.ExecuteCommandList(_commandList);
+            this.rootSignature = RootSignatureObject.New(device);
+            
 
-            FlushCommandQueue();
+            this.BuildMesh();
+            this.BuildFrameResources();
+            this.BuildConstantBuffers();
+            this.pso = PipelinesStateObject.New(device, rootSignature, MsaaCount, MsaaQuality, DepthStencilFormat, BackBufferFormat);
 
-            Camera = new OrbitCamera();
+            this.FlushCommandQueue();
+
+            this.camera = new OrbitCamera();
         }
 
-        public OrbitCamera Camera
-        {
-            get;
-        }
 
         private void InitDirect3D()
         {
-            InitDevice();
-            InitMultisampleQualityLevels();
+            this.InitDevice();
+            this.InitMultisampleQualityLevels();
         }
 
         private void InitDevice()
         {
-            _factory = new Factory4();
+            this.factory = new Factory4();
 
             try
             {
-                _device = new Device(_factory.GetAdapter(1), FeatureLevel.Level_11_0);
+                this.device = new Device(factory.GetAdapter(1), FeatureLevel.Level_11_0);
             }
             catch (SharpDXException)
             {
-                var warpAdapter = _factory.CreateSoftwareAdapter(this.handleIntPtr);
-                _device = new Device(warpAdapter, FeatureLevel.Level_11_0);
+                var warpAdapter = factory.CreateSoftwareAdapter(this.handleIntPtr);
+                this.device = new Device(warpAdapter, FeatureLevel.Level_11_0);
             }
 
-            _fence = _device.CreateFence(0, FenceFlags.None);
-            _fenceEvent = new AutoResetEvent(false);
+            this.fence = device.CreateFence(0, FenceFlags.None);
+            this.fenceEvent = new AutoResetEvent(false);
 
-            _rtvDescriptorSize = _device.GetDescriptorHandleIncrementSize(DescriptorHeapType.RenderTargetView);
-            _dsvDescriptorSize = _device.GetDescriptorHandleIncrementSize(DescriptorHeapType.DepthStencilView);
-            _cbvSrvUavDescriptorSize = _device.GetDescriptorHandleIncrementSize(DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView);
+            this.rtvDescriptorSize = device.GetDescriptorHandleIncrementSize(DescriptorHeapType.RenderTargetView);
         }
 
         private void InitMultisampleQualityLevels()
         {
-            var msQualityLevels = new FeatureDataMultisampleQualityLevels();
-            msQualityLevels.Format = _backBufferFormat;
-            msQualityLevels.SampleCount = 4;
-            msQualityLevels.Flags = MultisampleQualityLevelFlags.None;
-            msQualityLevels.QualityLevelCount = 0;
-            _device.CheckFeatureSupport(SharpDX.Direct3D12.Feature.MultisampleQualityLevels, ref msQualityLevels);
-            _m4xMsaaQuality = msQualityLevels.QualityLevelCount;
-        }
-
-        private void CreateCommandObjects()
-        {
-            var queueDesc = new CommandQueueDescription(CommandListType.Direct);
-
-            _commandQueue = _device.CreateCommandQueue(queueDesc);
-
-            _commandAllocator = _device.CreateCommandAllocator(CommandListType.Direct);
-
-            _commandList = _device.CreateCommandList(
-                0,
-                CommandListType.Direct,
-                _commandAllocator,
-                null);
-
-            _commandList.Close();
-        }
-
-        private void CreateSwapChain()
-        {
-            _swapChain?.Dispose();
-
-            var sd = new SwapChainDescription
+            var msQualityLevels = new FeatureDataMultisampleQualityLevels
             {
-                ModeDescription = new ModeDescription
-                {
-                    Format = _backBufferFormat,
-                    RefreshRate = new Rational(60, 1),
-                    Scaling = DisplayModeScaling.Unspecified,
-                    ScanlineOrdering = DisplayModeScanlineOrder.Unspecified
-                },
-                SampleDescription = new SampleDescription
-                {
-                    Count = _msaaCount,
-                    Quality = _msaaQuality
-                },
-                Usage = Usage.RenderTargetOutput,
-                BufferCount = _swapChainBufferCount,
-                SwapEffect = SwapEffect.FlipDiscard,
-                Flags = SwapChainFlags.AllowModeSwitch,
-                OutputHandle = this.handleIntPtr,
-                IsWindowed = true
+                Format = BackBufferFormat,
+                SampleCount = 4,
+                Flags = MultisampleQualityLevelFlags.None,
+                QualityLevelCount = 0
             };
 
-            using (var tempSwapChain = new SwapChain(_factory, _commandQueue, sd))
-            {
-                _swapChain = tempSwapChain.QueryInterface<SwapChain3>();
-            }
-        }
-
-        private void CreateRtvAndDsvDescriptorHeaps()
-        {
-            var rtvHeapDesc = new DescriptorHeapDescription
-            {
-                DescriptorCount = _rtvDescriptorCount,
-                Type = DescriptorHeapType.RenderTargetView
-            };
-            _rtvHeap = _device.CreateDescriptorHeap(rtvHeapDesc);
-
-            var dsvHeapDesc = new DescriptorHeapDescription
-            {
-                DescriptorCount = _dsvDescriptorCount,
-                Type = DescriptorHeapType.DepthStencilView
-            };
-            _dsvHeap = _device.CreateDescriptorHeap(dsvHeapDesc);
-        }
-
-        private void BuildRootSignature()
-        {
-            var cbvTable = new DescriptorRange(DescriptorRangeType.ConstantBufferView, 1, 0);
-
-            var rootSigDesc = new RootSignatureDescription(RootSignatureFlags.AllowInputAssemblerInputLayout, new[]
-            {
-                new RootParameter(ShaderVisibility.Vertex, cbvTable)
-            });
-
-            _rootSignature = _device.CreateRootSignature(rootSigDesc.Serialize());
-        }
-
-        private void BuildDescriptorHeaps()
-        {
-            var cbvHeapDesc = new DescriptorHeapDescription
-            {
-                DescriptorCount = 1,
-                Type = DescriptorHeapType.ConstantBufferViewShaderResourceViewUnorderedAccessView,
-                Flags = DescriptorHeapFlags.ShaderVisible,
-                NodeMask = 0
-            };
-            _cbvHeap = _device.CreateDescriptorHeap(cbvHeapDesc);
-            _descriptorHeaps = new[] { _cbvHeap };
+           this.device.CheckFeatureSupport(SharpDX.Direct3D12.Feature.MultisampleQualityLevels, ref msQualityLevels);
+           this.m4XMsaaQuality = msQualityLevels.QualityLevelCount;
         }
 
         private void BuildConstantBuffers()
         {
-            var sizeInBytes = BufferHelper.CalcConstantBufferByteSize<ObjectConstants>();
-
-            _objectCB = new Utilities.UploadBuffer<ObjectConstants>(_device, 1, true);
-
             var cbvDesc = new ConstantBufferViewDescription
             {
-                BufferLocation = _objectCB.Resource.GPUVirtualAddress,
-                SizeInBytes = sizeInBytes
+                BufferLocation = CurrFrameResource.ObjectCB.Resource.GPUVirtualAddress,
+                SizeInBytes = BufferHelper.CalcConstantBufferByteSize<ObjectConstants>()
             };
-            CpuDescriptorHandle cbvHeapHandle = _cbvHeap.CPUDescriptorHandleForHeapStart;
-            _device.CreateConstantBufferView(cbvDesc, cbvHeapHandle);
+
+            this.device.CreateConstantBufferView(cbvDesc, descriptorHeapObjects.ConstantBufferViewShaderResourceViewUnorderedAccessViewDescriptorHeap.CPUDescriptorHandleForHeapStart);
         }
 
         private void BuildMesh()
         {
-            //_boxMesh = Triangle.Create(_device, _commandList, new Vector3(-1.0f, -1.0f, 0f), new Vector3(-1.0f, +1.0f, 0f), new Vector3(+1.0f, +1.0f, 0f), Color.White);
-            _grid = new Grid(_device, _commandList, PrimitiveTopology.LineList, 10, 1.0f, Color.White);
-            _cylinder = new Cylinder(_device, _commandList, PrimitiveTopology.LineList, new Vector3(2, 2, 2), new Vector3(4, 4, 4), 1, 1, 10, Color.Black);
-            _sphere = new Sphere(_device, _commandList, PrimitiveTopology.TriangleList, 2, 10, 10, Color.Red);
+            this.commandObjects.GetGraphicsCommandList.Reset(commandObjects.GetCommandAllocator, null);
+
+            //this.meshes.Add(new Grid(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.LineList, 10, 1.0f, Color.White));
+            this.meshes.Add(new Cylinder(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, new Vector3(0, 0, 0), new Vector3(4, 4, 4), 0, 1, 10, 10, Color.Black));
+            //this.meshes.Add(new Sphere(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, 2, 10, 10, Color.Red));
+
+            this.commandObjects.GetGraphicsCommandList.Close();
+            this.commandObjects.GetCommandQueue.ExecuteCommandList(commandObjects.GetGraphicsCommandList);
         }
+
+        private void BuildFrameResources()
+        {
+            for (int i = 0; i < NumFrameResources; i++)
+            {
+                frameResources.Add(new FrameResource(device, 1, this.meshes.Count));
+                fenceEvents.Add(new AutoResetEvent(false));
+            }
+        }
+
 
         public void Resize(int clientWidth, int clientHeight)
         {
-            lock (_commandList)
+            lock (commandObjects.GetGraphicsCommandList)
             {
-                //this.CreateSwapChain(clientWidth, clientHeight);
-
                 this.FlushCommandQueue();
 
-                _commandList.Reset(_commandAllocator, null);
+                this.commandObjects.GetGraphicsCommandList.Reset(commandObjects.GetCommandAllocator, null);
 
-                foreach (Resource buffer in _swapChainBuffers)
+                foreach (var buffer in swapChainBuffers)
                 {
                     buffer?.Dispose();
                 }
 
-                _depthStencilBuffer?.Dispose();
+                this.depthStencilBuffer?.Dispose();
 
-                _swapChain.ResizeBuffers(
-                    _swapChainBufferCount,
+                this.swapChain.ResizeBuffers(
+                    SwapChainBufferCount,
                     clientWidth, clientHeight,
-                    _backBufferFormat,
+                    BackBufferFormat,
                     SwapChainFlags.AllowModeSwitch);
 
-                CpuDescriptorHandle rtvHeapHandle = _rtvHeap.CPUDescriptorHandleForHeapStart;
-                for (int i = 0; i < _swapChainBufferCount; i++)
+                var rtvHeapHandle = descriptorHeapObjects.RenderTargetViewDescriptorHeap.CPUDescriptorHandleForHeapStart;
+                for (var i = 0; i < SwapChainBufferCount; i++)
                 {
-                    var backBuffer = _swapChain.GetBackBuffer<Resource>(i);
-                    _swapChainBuffers[i] = backBuffer;
-                    _device.CreateRenderTargetView(backBuffer, null, rtvHeapHandle);
-                    rtvHeapHandle += _rtvDescriptorSize;
+                    var backBuffer = swapChain.GetBackBuffer<Resource>(i);
+                    this.swapChainBuffers[i] = backBuffer;
+                    this.device.CreateRenderTargetView(backBuffer, null, rtvHeapHandle);
+                    rtvHeapHandle += rtvDescriptorSize;
                 }
 
-                var depthStencilDesc = new ResourceDescription
-                {
-                    Dimension = ResourceDimension.Texture2D,
-                    Alignment = 0,
-                    Width = clientWidth,
-                    Height = clientHeight,
-                    DepthOrArraySize = 1,
-                    MipLevels = 1,
-                    Format = Format.R24G8_Typeless,
-                    SampleDescription = new SampleDescription
-                    {
-                        Count = _msaaCount,
-                        Quality = _msaaQuality
-                    },
-                    Layout = TextureLayout.Unknown,
-                    Flags = ResourceFlags.AllowDepthStencil
-                };
-                var optClear = new ClearValue
-                {
-                    Format = _depthStencilFormat,
-                    DepthStencil = new DepthStencilValue
-                    {
-                        Depth = 1.0f,
-                        Stencil = 0
-                    }
-                };
-                _depthStencilBuffer = _device.CreateCommittedResource(
-                    new HeapProperties(HeapType.Default),
-                    HeapFlags.None,
-                    depthStencilDesc,
-                    ResourceStates.Common,
-                    optClear);
+                this.depthStencilBuffer = DepthStencilBufferResource.New(device, clientWidth, clientHeight, MsaaCount,
+                    MsaaQuality, DepthStencilFormat);
 
                 var depthStencilViewDesc = new DepthStencilViewDescription
                 {
                     Dimension = DepthStencilViewDimension.Texture2D,
-                    Format = _depthStencilFormat
+                    Format = DepthStencilFormat
                 };
 
-                CpuDescriptorHandle dsvHeapHandle = _dsvHeap.CPUDescriptorHandleForHeapStart;
-                _device.CreateDepthStencilView(_depthStencilBuffer, depthStencilViewDesc, dsvHeapHandle);
+                var dsvHeapHandle = descriptorHeapObjects.DepthStencilViewDescriptorHeap.CPUDescriptorHandleForHeapStart;
+                this.device.CreateDepthStencilView(depthStencilBuffer, depthStencilViewDesc, dsvHeapHandle);
 
-                _commandList.ResourceBarrierTransition(_depthStencilBuffer, ResourceStates.Common, ResourceStates.DepthWrite);
+                this.commandObjects.GetGraphicsCommandList.ResourceBarrierTransition(depthStencilBuffer, ResourceStates.Common, ResourceStates.DepthWrite);
 
-                _commandList.Close();
-                _commandQueue.ExecuteCommandList(_commandList);
+                this.commandObjects.GetGraphicsCommandList.Close();
+                this.commandObjects.GetCommandQueue.ExecuteCommandList(commandObjects.GetGraphicsCommandList);
 
-                FlushCommandQueue();
+                this.FlushCommandQueue();
 
-                _viewport = new ViewportF(0, 0, clientWidth, clientHeight, 0.0f, 1.0f);
-                _scissorRectangle = new RectangleF(0, 0, clientWidth, clientHeight);
+                this.viewport = new ViewportF(0, 0, clientWidth, clientHeight, 0.0f, 1.0f);
+                this.scissorRectangle = new RectangleF(0, 0, clientWidth, clientHeight);
 
-                this.Camera.SetPerspective(MathUtil.PiOverFour, (float)clientWidth / clientHeight, 1.0f, 1000.0f);
-                this.Camera.SetOrthographic((float)clientWidth / 100, (float)clientHeight / 100, -15000f, 15000.0f);
+                this.camera.SetPerspective(MathUtil.PiOverFour, (float)clientWidth / clientHeight, 1.0f, 1000.0f);
+                this.camera.SetOrthographic((float)clientWidth / 100, (float)clientHeight / 100, -1500f, 1500.0f);
             }
         }
 
         private void FlushCommandQueue()
         {
-            _currentFence++;
+            this.currentFence++;
 
-            _commandQueue.Signal(_fence, _currentFence);
+            this.commandObjects.GetCommandQueue.Signal(fence, currentFence);
 
-            if (_fence.CompletedValue < _currentFence)
+            if (this.fence.CompletedValue < this.currentFence)
             {
-                _fence.SetEventOnCompletion(_currentFence, _fenceEvent.SafeWaitHandle.DangerousGetHandle());
-
-                _fenceEvent.WaitOne();
+                this.fence.SetEventOnCompletion(currentFence, fenceEvent.SafeWaitHandle.DangerousGetHandle());
+                this.fenceEvent.WaitOne();
             }
         }
 
-        public void Update()
+        private int init = 3;
+
+        public void Update(int clientWidth, int clientHeight)
         {
-            var eye = new Vector3(1, 1, 20);
-            var target = new Vector3(0, 0, 0);
-            var up = new Vector3(0, 1, 0);
+            currFrameResourceIndex = (currFrameResourceIndex + 1) % NumFrameResources;
 
-            this.Camera.SetView(eye, target, up);
-
-            var cb = new ObjectConstants
+            // Has the GPU finished processing the commands of the current frame resource?
+            // If not, wait until the GPU has completed commands up to this fence point.
+            if (CurrFrameResource.Fence != 0 && fence.CompletedValue < CurrFrameResource.Fence)
             {
-                WorldViewProj = Matrix.Transpose(this.Camera.ViewMatrix * this.Camera.ProjectionMatrix)
-            };
+                fence.SetEventOnCompletion(CurrFrameResource.Fence, CurrentFenceEvent.SafeWaitHandle.DangerousGetHandle());
+                CurrentFenceEvent.WaitOne();
+            }
 
-            _objectCB.CopyData(0, ref cb);
+            if (init > 0)
+            {
+                for (int i = 0; i < this.meshes.Count; i++)
+                {
+                    var objConstants = new ObjectConstants { World = Matrix.Transpose(this.meshes[i].World) };
+                    CurrFrameResource.ObjectCB.CopyData(i, ref objConstants);
+                }
+                init--;
+            }
+
+            Matrix viewProj = this.camera.ViewMatrix * this.camera.ProjectionMatrix;
+            Matrix invView = Matrix.Invert(this.camera.ViewMatrix);
+            Matrix invProj = Matrix.Invert(this.camera.ProjectionMatrix);
+            Matrix invViewProj = Matrix.Invert(viewProj);
+
+            mainPassCb.View = Matrix.Transpose(this.camera.ViewMatrix);
+            mainPassCb.InvView = Matrix.Transpose(invView);
+            mainPassCb.Proj = Matrix.Transpose(this.camera.ProjectionMatrix);
+            mainPassCb.InvProj = Matrix.Transpose(invProj);
+            mainPassCb.ViewProj = Matrix.Transpose(viewProj);
+            mainPassCb.InvViewProj = Matrix.Transpose(invViewProj);
+            mainPassCb.EyePosW = this.camera.Eye;
+            mainPassCb.RenderTargetSize = new Vector2(clientWidth, clientHeight);
+            mainPassCb.InvRenderTargetSize = 1.0f / mainPassCb.RenderTargetSize;
+        
+            CurrFrameResource.PassCB.CopyData(0, ref mainPassCb);
         }
 
         public void Draw(bool paused)
         {
-            lock (_commandList)
+            lock (this.commandObjects.GetGraphicsCommandList)
             {
-                if (paused || _swapChain.IsDisposed)
+                if (paused || this.swapChain.IsDisposed)
                 {
                     return;
                 }
 
-                _commandAllocator.Reset();
+                this.CurrFrameResource.CmdListAlloc.Reset();
 
-                _commandList.Reset(_commandAllocator, _pso);
-                _commandList.SetViewport(_viewport);
-                _commandList.SetScissorRectangles(_scissorRectangle);
-                _commandList.ResourceBarrierTransition(_currentBackBuffer, ResourceStates.Present, ResourceStates.RenderTarget);
-                _commandList.ClearRenderTargetView(_currentBackBufferView, Color.LightBlue);
-                _commandList.ClearDepthStencilView(_depthStencilView, ClearFlags.FlagsDepth | ClearFlags.FlagsStencil, 1.0f, 0);
-                _commandList.SetRenderTargets(_currentBackBufferView, _depthStencilView);
-                _commandList.SetDescriptorHeaps(_descriptorHeaps.Length, _descriptorHeaps);
-                _commandList.SetGraphicsRootSignature(_rootSignature);
-                _commandList.SetGraphicsRootDescriptorTable(0, _cbvHeap.GPUDescriptorHandleForHeapStart);
+                this.commandObjects.GetGraphicsCommandList.Reset(CurrFrameResource.CmdListAlloc, pso);
 
-                //Draw
-                _grid.Draw();
-                _cylinder.Draw();
-                _sphere.Draw();
+                this.commandObjects.GetGraphicsCommandList.SetViewport(viewport);
+                this.commandObjects.GetGraphicsCommandList.SetScissorRectangles(scissorRectangle);
 
-                _commandList.ResourceBarrierTransition(_currentBackBuffer, ResourceStates.RenderTarget, ResourceStates.Present);
-                _commandList.Close();
+                this.commandObjects.GetGraphicsCommandList.ResourceBarrierTransition(CurrentBackBuffer, ResourceStates.Present, ResourceStates.RenderTarget);
 
-                _commandQueue.ExecuteCommandList(_commandList);
+                this.commandObjects.GetGraphicsCommandList.ClearRenderTargetView(CurrentBackBufferView, Color.LightBlue);
+                this.commandObjects.GetGraphicsCommandList.ClearDepthStencilView(descriptorHeapObjects.DepthStencilViewDescriptorHeap.CPUDescriptorHandleForHeapStart, ClearFlags.FlagsDepth | ClearFlags.FlagsStencil, 1.0f, 0);
 
-                _swapChain.Present(0, PresentFlags.None);
+                this.commandObjects.GetGraphicsCommandList.SetRenderTargets(CurrentBackBufferView, descriptorHeapObjects.DepthStencilViewDescriptorHeap.CPUDescriptorHandleForHeapStart);
 
-                FlushCommandQueue();
+                this.commandObjects.GetGraphicsCommandList.SetGraphicsRootSignature(rootSignature);
+
+                this.commandObjects.GetGraphicsCommandList.SetGraphicsRootConstantBufferView(2, CurrFrameResource.PassCB.Resource.GPUVirtualAddress);
+               
+                this.DrawMeshes();
+
+                this.commandObjects.GetGraphicsCommandList.ResourceBarrierTransition(CurrentBackBuffer, ResourceStates.RenderTarget, ResourceStates.Present);
+                this.commandObjects.GetGraphicsCommandList.Close();
+
+                this.commandObjects.GetCommandQueue.ExecuteCommandList(commandObjects.GetGraphicsCommandList);
+
+                this.swapChain.Present(0, PresentFlags.None);
+
+                this.CurrFrameResource.Fence = ++currentFence;
+
+                this.commandObjects.GetCommandQueue.Signal(fence, currentFence);
+            }
+        }
+
+        private void DrawMeshes()
+        {
+            int objCBByteSize = BufferHelper.CalcConstantBufferByteSize<ObjectConstants>();
+
+            var objectCB = CurrFrameResource.ObjectCB.Resource;
+
+            for (int i = 0; i < this.meshes.Count; i++)
+            {
+                this.commandObjects.GetGraphicsCommandList.SetVertexBuffer(0, this.meshes[i].VertexBufferView);
+                this.commandObjects.GetGraphicsCommandList.SetIndexBuffer(this.meshes[i].IndexBufferView);
+                this.commandObjects.GetGraphicsCommandList.PrimitiveTopology = this.meshes[i].PrimitiveTopology;
+
+                var objCbAddress = objectCB.GPUVirtualAddress + i * objCBByteSize;
+
+                this.commandObjects.GetGraphicsCommandList.SetGraphicsRootConstantBufferView(0, objCbAddress);
+
+                this.commandObjects.GetGraphicsCommandList.DrawIndexedInstanced(meshes[i].IndexCount, 1, 0, 0, 0);
             }
         }
 
         public void Dispose()
         {
-            FlushCommandQueue();
+            this.FlushCommandQueue();
 
-            _rtvHeap?.Dispose();
-            _dsvHeap?.Dispose();
-            _swapChain?.Dispose();
+            this.descriptorHeapObjects?.Dispose();
+            this.swapChain?.Dispose();
 
-            foreach (Resource buffer in _swapChainBuffers)
+            foreach (var buffer in swapChainBuffers)
             {
                 buffer?.Dispose();
             }
 
-            _depthStencilBuffer?.Dispose();
-            _commandList?.Dispose();
-            _commandAllocator?.Dispose();
-            _commandQueue?.Dispose();
-            _fence?.Dispose();
-            _device?.Dispose();
+            this.depthStencilBuffer?.Dispose();
+            this.commandObjects?.Dispose();
+            this.fence?.Dispose();
+            this.device?.Dispose();
 
             GC.SuppressFinalize(this);
+        }
+
+        public void CameraZoom(int zoomValue)
+        {
+            this.camera.Zoom(zoomValue);
+        }
+
+        public void CameraRotationY(int zoomValue)
+        {
+            this.camera.RotateY(zoomValue);
+        }
+
+        public void CameraRotationOrtho(int zoomValue)
+        {
+            this.camera.RotateOrtho(zoomValue);
         }
     }
 }

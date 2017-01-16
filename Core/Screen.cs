@@ -7,6 +7,8 @@
 
     public class Screen : IDisposable
     {
+        private int clientWidth;
+        private int clientHeight;
         private bool paused;
         private bool running;
         private int frameCount;
@@ -23,10 +25,12 @@
             this.running = true;
         }
 
-        public void Resize(int clientWidth, int clientHeight)
+        public void Resize(int width, int height)
         {
             this.paused = true;
 
+            this.clientWidth = width;
+            this.clientHeight = height;
             this.d3DApp.Resize(clientWidth, clientHeight);
 
             this.paused = false;
@@ -34,17 +38,17 @@
 
         public void CameraZoom(int zoomValue)
         {
-            this.d3DApp.Camera.Zoom(zoomValue);
+            this.d3DApp.CameraZoom(zoomValue);
         }
 
         public void CameraRotationY(int zoomValue)
         {
-            this.d3DApp.Camera.RotateY(zoomValue);
+            this.d3DApp.CameraRotationY(zoomValue);
         }
 
         public void CameraRotationOrtho(int zoomValue)
         {
-            this.d3DApp.Camera.RotateOrtho(zoomValue);
+            this.d3DApp.CameraRotationY(zoomValue);
         }
 
         public void Run()
@@ -57,8 +61,8 @@
                     if (!this.paused)
                     {
                         this.CalculateFrameRateStats();
-                        this.d3DApp.Update();
-                        this.d3DApp.Draw(paused);
+                        this.d3DApp.Update(this.clientWidth, this.clientHeight);
+                        this.d3DApp.Draw(this.paused);
                     }
                     else
                     {

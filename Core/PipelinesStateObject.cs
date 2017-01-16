@@ -5,13 +5,15 @@
     using SharpDX.DXGI;
     using SharpDX.Direct3D12;
 
+    using Device = SharpDX.Direct3D12.Device;
+
     public class PipelinesStateObject
     {
         private static InputLayoutDescription inputLayout;
         private static ShaderBytecode mvsByteCode;
         private static ShaderBytecode mpsByteCode;
 
-        public static GraphicsPipelineStateDescription New(RootSignature rootSignature, int msaaCount, int msaaQuality, Format depthStencilFormat, Format backBufferFormat)
+        public static PipelineState New(Device device, RootSignature rootSignature, int msaaCount, int msaaQuality, Format depthStencilFormat, Format backBufferFormat)
         {
             BuildShadersAndInputLayout();
 
@@ -33,7 +35,7 @@
 
             graphicsPipelineStateDescription.RenderTargetFormats[0] = backBufferFormat;
 
-            return graphicsPipelineStateDescription;
+            return device.CreateGraphicsPipelineState(graphicsPipelineStateDescription);
         }
 
         private static void BuildShadersAndInputLayout()
@@ -44,6 +46,7 @@
             inputLayout = new InputLayoutDescription(new[]
             {
                 new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
+                new InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0),
                 new InputElement("COLOR", 0, Format.R32G32B32A32_Float, 12, 0)
             });
         }

@@ -24,8 +24,8 @@
            Color color,
            string name = "Default")
         {
-            _commandList = commandList;
-            _primitiveTopology = primitiveTopology;
+            CommandList = commandList;
+            base.PrimitiveTopology = primitiveTopology;
 
             this.Name = name;
 
@@ -35,20 +35,17 @@
             var numVerticesPerRow = slices + 1;
             var numVerticesPerColumn = stacks + 1;
 
-            var theta = 0.0f;
-            var phi = 0.0f;
-
             var verticalAngularStride = (float)Math.PI / stacks;
             var horizontalAngularStride = ((float)Math.PI * 2) / slices;
 
             for (var verticalIt = 0; verticalIt < numVerticesPerColumn; verticalIt++)
             {
                 // beginning on top of the sphere:
-                theta = ((float)Math.PI / 2.0f) - verticalAngularStride * verticalIt;
+                var theta = ((float)Math.PI / 2.0f) - verticalAngularStride * verticalIt;
 
                 for (var horizontalIt = 0; horizontalIt < numVerticesPerRow; horizontalIt++)
                 {
-                    phi = horizontalAngularStride * horizontalIt;
+                    var phi = horizontalAngularStride * horizontalIt;
 
                     // position
                     var x = radius * (float)Math.Cos(theta) * (float)Math.Cos(phi);

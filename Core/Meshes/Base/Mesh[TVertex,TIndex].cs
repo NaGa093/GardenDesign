@@ -16,13 +16,13 @@
 
     public class Mesh<TVertex, TIndex> : IDisposable where TVertex : struct where TIndex : struct
     {
-        private List<IDisposable> _toDispose;
-        protected GraphicsCommandList _commandList;
-        protected PrimitiveTopology _primitiveTopology;
-        private int _objCBIndex;
+        private List<IDisposable> toDispose;
+
+        protected GraphicsCommandList CommandList;
 
         public Mesh()
         {
+            this.World = Matrix.Identity;
         }
 
         public Mesh(Device device,
@@ -32,20 +32,12 @@
            IEnumerable<TIndex> indices = null,
            string name = "Default")
         {
-            _commandList = commandList;
-            _primitiveTopology = primitiveTopology;
+            this.CommandList = commandList;
+            this.PrimitiveTopology = primitiveTopology;
 
             this.Name = name;
-            this.Transform = Matrix.Identity;
+            this.World = Matrix.Identity;
             this.Initialize(device, vertices, indices);
-        }
-
-        public int ObjCBIndex
-        {
-            get
-            {
-                return _objCBIndex++;
-            }
         }
 
         public string Name
@@ -53,22 +45,22 @@
             get; set;
         }
 
-        public Resource VertexBufferGPU
+        public Resource VertexBufferGpu
         {
             get; set;
         }
 
-        public Resource IndexBufferGPU
+        public Resource IndexBufferGpu
         {
             get; set;
         }
 
-        public object VertexBufferCPU
+        public object VertexBufferCpu
         {
             get; set;
         }
 
-        public object IndexBufferCPU
+        public object IndexBufferCpu
         {
             get; set;
         }
@@ -98,67 +90,68 @@
             get; set;
         }
 
-        public Matrix Transform
+        public Matrix World
         {
             get; set;
         }
 
+        public PrimitiveTopology PrimitiveTopology
+        {
+            get;
+            protected set;
+        }
+
         public VertexBufferView VertexBufferView => new VertexBufferView
         {
-            BufferLocation = this.VertexBufferGPU.GPUVirtualAddress,
+            BufferLocation = this.VertexBufferGpu.GPUVirtualAddress,
             StrideInBytes = this.VertexByteStride,
             SizeInBytes = this.VertexBufferByteSize
         };
 
         public IndexBufferView IndexBufferView => new IndexBufferView
         {
-            BufferLocation = this.IndexBufferGPU.GPUVirtualAddress,
+            BufferLocation = this.IndexBufferGpu.GPUVirtualAddress,
             Format = this.IndexFormat,
             SizeInBytes = this.IndexBufferByteSize
         };
 
         protected void Initialize(Device device, IEnumerable<TVertex> vertices = null, IEnumerable<TIndex> indices = null)
         {
-            var vertexArray = vertices.ToArray();
-            var indexArray = indices.ToArray();
+            var vertexArray = vertices?.ToArray();
+            var indexArray = indices?.ToArray();
 
             var vertexBufferByteSize = Utilities.SizeOf(vertexArray);
             Resource vertexBufferUploader;
-            var vertexBuffer = BufferHelper.CreateDefaultBuffer(device, _commandList, vertexArray, vertexBufferByteSize, out vertexBufferUploader);
+            var vertexBuffer = BufferHelper.CreateDefaultBuffer(device, CommandList, vertexArray, vertexBufferByteSize, out vertexBufferUploader);
 
             var indexBufferByteSize = Utilities.SizeOf(indexArray);
             Resource indexBufferUploader;
-            var indexBuffer = BufferHelper.CreateDefaultBuffer(device, _commandList, indexArray, indexBufferByteSize, out indexBufferUploader);
+            var indexBuffer = BufferHelper.CreateDefaultBuffer(device, CommandList, indexArray, indexBufferByteSize, out indexBufferUploader);
 
-            VertexByteStride = Utilities.SizeOf<TVertex>();
-            VertexBufferByteSize = vertexBufferByteSize;
-            VertexBufferGPU = vertexBuffer;
-            VertexBufferCPU = vertexArray;
-            IndexCount = indexArray.Length;
-            IndexFormat = GetIndexFormat();
-            IndexBufferByteSize = indexBufferByteSize;
-            IndexBufferGPU = indexBuffer;
-            IndexBufferCPU = indexArray;
+            this.VertexByteStride = Utilities.SizeOf<TVertex>();
+            this.VertexBufferByteSize = vertexBufferByteSize;
+            this.VertexBufferGpu = vertexBuffer;
+            this.VertexBufferCpu = vertexArray;
 
-            this._toDispose = new List<IDisposable>
+            if (indexArray != null)
+            {
+                this.IndexCount = indexArray.Length;
+                this.IndexFormat = GetIndexFormat();
+                this.IndexBufferByteSize = indexBufferByteSize;
+                this.IndexBufferGpu = indexBuffer;
+                this.IndexBufferCpu = indexArray;
+            }
+
+            this.toDispose = new List<IDisposable>
             {
                 vertexBuffer, vertexBufferUploader,
                 indexBuffer, indexBufferUploader
             };
         }
 
-        public void Draw()
-        {
-            _commandList.SetVertexBuffer(0, VertexBufferView);
-            _commandList.SetIndexBuffer(IndexBufferView);
-            _commandList.PrimitiveTopology = _primitiveTopology;
-            //_commandList.SetGraphicsRootConstantBufferView(0, this.VertexBufferGPU.GPUVirtualAddress + ObjCBIndex * BufferHelper.CalcConstantBufferByteSize<ObjectConstants>());
-            _commandList.DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
-        }
-
         public void Dispose()
         {
-            foreach (IDisposable disposable in _toDispose)
+            foreach (var disposable in toDispose)
             {
                 disposable.Dispose();
             }   

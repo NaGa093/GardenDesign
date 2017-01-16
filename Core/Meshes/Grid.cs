@@ -22,8 +22,8 @@
            Color color,
            string name = "Default")
         {
-            _commandList = commandList;
-            _primitiveTopology = primitiveTopology;
+            CommandList = commandList;
+            base.PrimitiveTopology = primitiveTopology;
 
             this.Name = name;
 
@@ -63,11 +63,11 @@
 
         public new void Draw()
         {
-            _commandList.SetVertexBuffer(0, VertexBufferView);
-            _commandList.SetIndexBuffer(IndexBufferView);
-            _commandList.PrimitiveTopology = _primitiveTopology;
+            CommandList.SetVertexBuffer(0, VertexBufferView);
+            CommandList.SetIndexBuffer(IndexBufferView);
+            CommandList.PrimitiveTopology = PrimitiveTopology;
             //_commandList.SetGraphicsRootConstantBufferView(0, this.VertexBufferGPU.GPUVirtualAddress + ObjCBIndex * BufferHelper.CalcConstantBufferByteSize<ObjectConstants>());
-            _commandList.DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
+            CommandList.DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
         }
     }
 }
