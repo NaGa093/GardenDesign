@@ -36,14 +36,14 @@
             this.directXControl1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.directXControl1.Location = new System.Drawing.Point(0, 0);
             this.directXControl1.Name = "directXControl1";
-            this.directXControl1.Size = new System.Drawing.Size(284, 261);
+            this.directXControl1.Size = new System.Drawing.Size(284, 264);
             this.directXControl1.TabIndex = 0;
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(284, 261);
+            this.ClientSize = new System.Drawing.Size(284, 264);
             this.Controls.Add(this.directXControl1);
             this.Name = "MainForm";
             this.Text = "Form1";

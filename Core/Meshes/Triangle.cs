@@ -11,21 +11,18 @@
 
     public class Triangle : Mesh
     {
-        public Triangle(
-         Device device,
-         GraphicsCommandList commandList,
-         PrimitiveTopology primitiveTopology,
-         Vector3 vA,
-         Vector3 vB,
-         Vector3 vC,
-         Color color,
-         string name = "Default")
+        public Triangle(Device device, GraphicsCommandList commandList, PrimitiveTopology primitiveTopology, Vector3 a,
+            Vector3 b, Vector3 c, Color color, ref int index, string name = "Default")
         {
+            base.CommandList = commandList;
+            base.PrimitiveTopology = primitiveTopology;
+            base.Name = name;
+
             Vertex[] vertices =
             {
-                new Vertex { Pos = vA, Color = color.ToVector4() },
-                new Vertex { Pos = vB, Color = color.ToVector4() },
-                new Vertex { Pos = vC, Color = color.ToVector4() }
+                new Vertex {Position = a, Color = color.ToVector4()},
+                new Vertex {Position = b, Color = color.ToVector4()},
+                new Vertex {Position = c, Color = color.ToVector4()}
             };
 
             short[] indices =
@@ -33,7 +30,7 @@
                 0, 1, 2
             };
 
-            this.Initialize(device, vertices, indices);
+            this.Initialize(device, ref index, vertices, indices);
         }
     }
 }

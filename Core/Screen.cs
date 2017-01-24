@@ -9,6 +9,8 @@
     {
         private int clientWidth;
         private int clientHeight;
+        private float xPosition;
+        private float yPosition;
         private bool paused;
         private bool running;
         private int frameCount;
@@ -19,9 +21,7 @@
         public Screen(IntPtr handleInstance)
         {
             this.d3DApp = new D3DApp(handleInstance);
-
             this.fpsTimer = new Stopwatch();
-
             this.running = true;
         }
 
@@ -32,6 +32,7 @@
             this.clientWidth = width;
             this.clientHeight = height;
             this.d3DApp.Resize(clientWidth, clientHeight);
+            this.SetCameraPosition();
 
             this.paused = false;
         }
@@ -41,14 +42,39 @@
             this.d3DApp.CameraZoom(zoomValue);
         }
 
-        public void CameraRotationY(int zoomValue)
+        public void AddMesh(float startX, float startY, float stopX, float stopY)
         {
-            this.d3DApp.CameraRotationY(zoomValue);
+            this.d3DApp.AddMesh(startX,startY,stopX,stopY);
         }
 
-        public void CameraRotationOrtho(int zoomValue)
+        public void SetCameraPosition(float x, float y)
         {
-            this.d3DApp.CameraRotationY(zoomValue);
+            if (this.xPosition + x > 0)
+            {
+                this.xPosition += x;
+            }
+            else
+            {
+                this.xPosition = 0;
+            }
+
+            if (this.yPosition + y > 0)
+            {
+                this.yPosition += y;
+            }
+            else
+            {
+                this.yPosition = 0;
+            }
+
+            this.SetCameraPosition();
+        }
+
+        private void SetCameraPosition()
+        {
+            var x = - (this.clientWidth - 2) / 2 - xPosition;
+            var y = (this.clientHeight) / 2 + yPosition;
+            this.d3DApp.CameraPosition(x, y, 1.0f);
         }
 
         public void Run()

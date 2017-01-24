@@ -1,15 +1,29 @@
-﻿using SharpDX.Direct3D12;
-using SharpDX.DXGI;
-using Resource = SharpDX.Direct3D12.Resource;
-
-namespace Core
+﻿namespace Core
 {
+    using SharpDX.Direct3D12;
+    using SharpDX.DXGI;
+
+    using Resource = SharpDX.Direct3D12.Resource;
     using Device = SharpDX.Direct3D12.Device;
+
     public class DepthStencilBufferResource
     {
         public static Resource New(Device device, long clientWidth, int clientHeight, int msaaCount, int msaaQuality, Format depthStencilFormat)
         {
-            var depthStencilDesc = new ResourceDescription
+            var depthStencilDesc = BuildResourceDescription(clientWidth, clientHeight, msaaCount, msaaQuality);
+            var optClear = BuildClearValue(depthStencilFormat);
+
+            return device.CreateCommittedResource(
+                new HeapProperties(HeapType.Default),
+                HeapFlags.None,
+                depthStencilDesc,
+                ResourceStates.Common,
+                optClear);
+        }
+
+        private static ResourceDescription BuildResourceDescription(long clientWidth, int clientHeight, int msaaCount, int msaaQuality)
+        {
+            return new ResourceDescription
             {
                 Dimension = ResourceDimension.Texture2D,
                 Alignment = 0,
@@ -26,8 +40,11 @@ namespace Core
                 Layout = TextureLayout.Unknown,
                 Flags = ResourceFlags.AllowDepthStencil
             };
+        }
 
-            var optClear = new ClearValue
+        private static ClearValue BuildClearValue(Format depthStencilFormat)
+        {
+            return new ClearValue
             {
                 Format = depthStencilFormat,
                 DepthStencil = new DepthStencilValue
@@ -36,13 +53,6 @@ namespace Core
                     Stencil = 0
                 }
             };
-
-            return device.CreateCommittedResource(
-                new HeapProperties(HeapType.Default),
-                HeapFlags.None,
-                depthStencilDesc,
-                ResourceStates.Common,
-                optClear);
         }
     }
 }

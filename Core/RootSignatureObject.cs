@@ -8,24 +8,40 @@
     {
         public static RootSignature New(Device device)
         {
-            var descriptor1 = new RootDescriptor(0, 0);
-            var descriptor2 = new RootDescriptor(1, 0);
-            var descriptor3 = new RootDescriptor(2, 0);
-
-            // Root parameter can be a table, root descriptor or root constants.
-            var slotRootParameters = new[]
-            {
-                new RootParameter(ShaderVisibility.Vertex, descriptor1, RootParameterType.ConstantBufferView),
-                new RootParameter(ShaderVisibility.Pixel, descriptor2, RootParameterType.ConstantBufferView),
-                new RootParameter(ShaderVisibility.All, descriptor3, RootParameterType.ConstantBufferView),
-            };
-
-            // A root signature is an array of root parameters.
-            var rootSigDesc = new RootSignatureDescription(
-                RootSignatureFlags.AllowInputAssemblerInputLayout,
-                slotRootParameters);
+            var rootSigDesc = BuildRootSignatureDescription();
 
             return device.CreateRootSignature(rootSigDesc.Serialize());
+        }
+
+        private static RootDescriptor[] BuildRootDescriptors()
+        {
+            return new[]
+            {
+                new RootDescriptor(0, 0),
+                new RootDescriptor(1, 0),
+                new RootDescriptor(2, 0)
+            };
+        }
+
+        private static RootParameter[] BuildRootParameters()
+        {
+            var rootDescriptors = BuildRootDescriptors();
+
+            return new[]
+            {
+                new RootParameter(ShaderVisibility.Vertex, rootDescriptors[0], RootParameterType.ConstantBufferView),
+                new RootParameter(ShaderVisibility.Pixel, rootDescriptors[1], RootParameterType.ConstantBufferView),
+                new RootParameter(ShaderVisibility.All, rootDescriptors[2], RootParameterType.ConstantBufferView),
+            };
+        }
+
+        private static RootSignatureDescription BuildRootSignatureDescription()
+        {
+            var rootParameters = BuildRootParameters();
+
+            return new RootSignatureDescription(
+                RootSignatureFlags.AllowInputAssemblerInputLayout,
+                rootParameters);
         }
     }
 }

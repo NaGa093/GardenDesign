@@ -36,7 +36,8 @@
         private Resource depthStencilBuffer;
         private ViewportF viewport;
         private RectangleF scissorRectangle;
-       
+
+        private int init = 3;
         private int currFrameResourceIndex;
         private int rtvDescriptorSize;
         private int m4XMsaaQuality;
@@ -70,19 +71,14 @@
             this.frameResources = new List<FrameResource>(NumFrameResources);
             this.fenceEvents = new List<AutoResetEvent>(NumFrameResources);
             this.mainPassCb = PassConstants.Default;
-            meshes = new List<Mesh>();
+            this.meshes = new List<Mesh>();
 
             this.InitDirect3D();
+
             this.commandObjects = new CommandObjects(device);
-
-
             this.swapChain = SwapChainObject.New(this.handleIntPtr, this.factory, this.commandObjects.GetCommandQueue, BackBufferFormat, SwapChainBufferCount, MsaaCount, MsaaQuality);
             this.descriptorHeapObjects = new DescriptorHeapObjects(device, SwapChainBufferCount, 1);
-
-            
-
             this.rootSignature = RootSignatureObject.New(device);
-            
 
             this.BuildMesh();
             this.BuildFrameResources();
@@ -150,10 +146,10 @@
         {
             this.commandObjects.GetGraphicsCommandList.Reset(commandObjects.GetCommandAllocator, null);
 
-            this.meshes.AddRange(CoordinateAxis.New(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.LineList));
-            //this.meshes.Add(new Grid(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.LineList, 10, 1.0f, Color.White));
-            //this.meshes.Add(new Cylinder(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, new Vector3(0, 0, 0), new Vector3(4, 4, 4), 0, 1, 10, 10, Color.Black));
-            //this.meshes.Add(new Sphere(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, 2, 10, 10, Color.Red));
+            var index = 0;
+            this.meshes.Add(new Grid(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.LineList, 20, 40, 50.01f, Color.Black, ref index));
+            this.meshes.Add(new Sphere(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, new Vector3(150,-150,0),10,10,10,Color.Red, ref index));
+            this.meshes.AddRange(CoordinateAxis.New(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, ref index));
 
             this.commandObjects.GetGraphicsCommandList.Close();
             this.commandObjects.GetCommandQueue.ExecuteCommandList(commandObjects.GetGraphicsCommandList);
@@ -161,10 +157,13 @@
 
         private void BuildFrameResources()
         {
+            this.frameResources.Clear();
+            this.fenceEvents.Clear();
+
             for (int i = 0; i < NumFrameResources; i++)
             {
-                frameResources.Add(new FrameResource(device, 1, this.meshes.Count));
-                fenceEvents.Add(new AutoResetEvent(false));
+                this.frameResources.Add(new FrameResource(device, 1, this.meshes.Count));
+                this.fenceEvents.Add(new AutoResetEvent(false));
             }
         }
 
@@ -173,6 +172,11 @@
         {
             lock (commandObjects.GetGraphicsCommandList)
             {
+                if (clientWidth == 0 || clientHeight == 0)
+                {
+                    return;
+                }
+
                 this.FlushCommandQueue();
 
                 this.commandObjects.GetGraphicsCommandList.Reset(commandObjects.GetCommandAllocator, null);
@@ -222,7 +226,7 @@
                 this.scissorRectangle = new RectangleF(0, 0, clientWidth, clientHeight);
 
                 this.camera.SetPerspective(MathUtil.PiOverFour, (float)clientWidth / clientHeight, 1.0f, 1000.0f);
-                this.camera.SetOrthographic((float)clientWidth / 100, (float)clientHeight / 100, -1500f, 1500.0f);
+                this.camera.SetOrthographic(clientWidth, clientHeight, -1500f, 1500.0f);
             }
         }
 
@@ -239,14 +243,10 @@
             }
         }
 
-        private int init = 3;
-
         public void Update(int clientWidth, int clientHeight)
         {
             currFrameResourceIndex = (currFrameResourceIndex + 1) % NumFrameResources;
 
-            // Has the GPU finished processing the commands of the current frame resource?
-            // If not, wait until the GPU has completed commands up to this fence point.
             if (CurrFrameResource.Fence != 0 && fence.CompletedValue < CurrFrameResource.Fence)
             {
                 fence.SetEventOnCompletion(CurrFrameResource.Fence, CurrentFenceEvent.SafeWaitHandle.DangerousGetHandle());
@@ -255,7 +255,7 @@
 
             if (init > 0)
             {
-                for (int i = 0; i < this.meshes.Count; i++)
+                for (var i = 0; i < this.meshes.Count; i++)
                 {
                     var objConstants = new ObjectConstants { World = Matrix.Transpose(this.meshes[i].World) };
                     CurrFrameResource.ObjectCB.CopyData(i, ref objConstants);
@@ -263,10 +263,10 @@
                 init--;
             }
 
-            Matrix viewProj = this.camera.ViewMatrix * this.camera.ProjectionMatrix;
-            Matrix invView = Matrix.Invert(this.camera.ViewMatrix);
-            Matrix invProj = Matrix.Invert(this.camera.ProjectionMatrix);
-            Matrix invViewProj = Matrix.Invert(viewProj);
+            var viewProj = this.camera.ViewMatrix * this.camera.ProjectionMatrix;
+            var invView = Matrix.Invert(this.camera.ViewMatrix);
+            var invProj = Matrix.Invert(this.camera.ProjectionMatrix);
+            var invViewProj = Matrix.Invert(viewProj);
 
             mainPassCb.View = Matrix.Transpose(this.camera.ViewMatrix);
             mainPassCb.InvView = Matrix.Transpose(invView);
@@ -325,21 +325,11 @@
 
         private void DrawMeshes()
         {
-            int objCBByteSize = BufferHelper.CalcConstantBufferByteSize<ObjectConstants>();
+            var objCbByteSize = BufferHelper.CalcConstantBufferByteSize<ObjectConstants>();
 
-            var objectCB = CurrFrameResource.ObjectCB.Resource;
-
-            for (int i = 0; i < this.meshes.Count; i++)
+            foreach (var mesh in this.meshes)
             {
-                this.commandObjects.GetGraphicsCommandList.SetVertexBuffer(0, this.meshes[i].VertexBufferView);
-                this.commandObjects.GetGraphicsCommandList.SetIndexBuffer(this.meshes[i].IndexBufferView);
-                this.commandObjects.GetGraphicsCommandList.PrimitiveTopology = this.meshes[i].PrimitiveTopology;
-
-                var objCbAddress = objectCB.GPUVirtualAddress + i * objCBByteSize;
-
-                this.commandObjects.GetGraphicsCommandList.SetGraphicsRootConstantBufferView(0, objCbAddress);
-
-                this.commandObjects.GetGraphicsCommandList.DrawIndexedInstanced(meshes[i].IndexCount, 1, 0, 0, 0);
+                mesh.Draw(objCbByteSize, CurrFrameResource.ObjectCB.Resource.GPUVirtualAddress);
             }
         }
 
@@ -347,14 +337,13 @@
         {
             this.FlushCommandQueue();
 
-            this.descriptorHeapObjects?.Dispose();
-            this.swapChain?.Dispose();
-
             foreach (var buffer in swapChainBuffers)
             {
                 buffer?.Dispose();
             }
 
+            this.descriptorHeapObjects?.Dispose();
+            this.swapChain?.Dispose();
             this.depthStencilBuffer?.Dispose();
             this.commandObjects?.Dispose();
             this.fence?.Dispose();
@@ -368,14 +357,30 @@
             this.camera.Zoom(zoomValue);
         }
 
-        public void CameraRotationY(int zoomValue)
+        public void CameraPosition(float x, float y, float z)
         {
-            this.camera.RotateY(zoomValue);
+            this.camera.SetPosition(new Vector3(x, y, z));
         }
 
-        public void CameraRotationOrtho(int zoomValue)
+        public void AddMesh(float startX, float startY, float stopX, float stopY)
         {
-            this.camera.RotateOrtho(zoomValue);
+            this.commandObjects.GetGraphicsCommandList.Reset(commandObjects.GetCommandAllocator, null);
+            var index = this.meshes.Count;
+            //this.meshes.Add(new Sphere(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, new Vector3(50, -50, 0), 10, 10, 10, Color.Red, ref index));
+            this.meshes.Add(new Sphere(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, new Vector3(startX, startY * -1, 0), 10, 10, 10, Color.Red, ref index, "Test"));
+            //this.meshes.AddRange(Meshes.BoundingBox.New(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, ref index, new Vector3(startX, -startY, 0), new Vector3(stopX, -stopY, 0)));
+            this.commandObjects.GetGraphicsCommandList.Close();
+            this.commandObjects.GetCommandQueue.ExecuteCommandList(commandObjects.GetGraphicsCommandList);
+            this.BuildFrameResources();
+        }
+
+        public void AddMesh(Mesh mesh)
+        {
+            this.commandObjects.GetGraphicsCommandList.Reset(commandObjects.GetCommandAllocator, null);
+            this.meshes.Add(mesh);
+            this.commandObjects.GetGraphicsCommandList.Close();
+            this.commandObjects.GetCommandQueue.ExecuteCommandList(commandObjects.GetGraphicsCommandList);
+            this.BuildFrameResources();
         }
     }
 }

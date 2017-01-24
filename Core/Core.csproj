@@ -20,6 +20,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <UseVSHostingProcess>true</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -85,9 +86,9 @@
     <Compile Include="DepthStencilBufferResource.cs" />
     <Compile Include="DescriptorHeapObjects.cs" />
     <Compile Include="FrameResource.cs" />
+    <Compile Include="Meshes\BoundingBox.cs" />
     <Compile Include="PipelinesStateObject.cs" />
     <Compile Include="Enums\Projections.cs" />
-    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Meshes\Base\Mesh.cs" />
     <Compile Include="Meshes\Base\Mesh[TVertex,TIndex].cs" />
     <Compile Include="Helpers\BufferHelper.cs" />
@@ -116,9 +117,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Device\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

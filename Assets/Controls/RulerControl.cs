@@ -12,7 +12,7 @@
     /// </summary>
     [ToolboxItem(true)]
     [ToolboxBitmap(typeof(RulerControl), "Ruler.bmp")]
-    public class RulerControl : Control, IMessageFilter
+    public sealed class RulerControl : Control, IMessageFilter
     {
         #region Internal Variables
 
@@ -87,7 +87,7 @@
         /// <summary>
         /// Required designer variable.
         /// </summary>
-        private System.ComponentModel.Container components = null;
+        private readonly System.ComponentModel.Container components = null;
 
         #region Constrcutors/Destructors
 
@@ -318,27 +318,25 @@
                     Application.RemoveMessageFilter(this);
                 }
             }
-            catch { }
+            catch
+            {
+                throw;
+            }
         }
 
         #endregion Overrides
 
         #region Event Handlers
 
-        private void RulerControl_MouseDown(object sender, System.Windows.Forms.MouseEventArgs e)
+        private void RulerControl_MouseUp(object sender, MouseEventArgs e)
         {
-            //          if (e.Button.Equals(MouseButtons.Right))
-        }
-
-        private void RulerControl_MouseUp(object sender, System.Windows.Forms.MouseEventArgs e)
-        {
-            if ((Control.MouseButtons & MouseButtons.Right) != 0)
+            if ((MouseButtons & MouseButtons.Right) != 0)
             {
-                this.ContextMenu.Show(this, PointToClient(Control.MousePosition));
+                this.ContextMenu.Show(this, PointToClient(MousePosition));
             }
             else
             {
-                EventArgs eClick = new EventArgs();
+                var eClick = new EventArgs();
                 this.OnClick(eClick);
             }
         }
@@ -351,12 +349,12 @@
             Invalidate();
         }
 
-        protected void OnHooverValue(HooverValueEventArgs e)
+        private void OnHooverValue(HooverValueEventArgs e)
         {
             if (HooverValue != null) HooverValue(this, e);
         }
 
-        protected void OnScaleModeChanged(ScaleModeChangedEventArgs e)
+        private void OnScaleModeChanged(ScaleModeChangedEventArgs e)
         {
             if (ScaleModeChanged != null) ScaleModeChanged(this, e);
         }
@@ -522,10 +520,7 @@
 
         [Description("The value of the current mouse position expressed in unit of the scale set (centimetres, inches, etc.")]
         [Category("Ruler")]
-        public double ScaleValue
-        {
-            get { return CalculateValue(_iMousePosition); }
-        }
+        public double ScaleValue => CalculateValue(_iMousePosition);
 
         [Description("TRUE if a line is displayed to track the current position of the mouse and events are generated as the mouse moves.")]
         [Category("Ruler")]
@@ -572,10 +567,7 @@
 
         [Description("Return the mouse position as number of pixels from the top or left of the control.  -1 means that the mouse is positioned before or after the control.")]
         [Category("Ruler")]
-        public int MouseLocation
-        {
-            get { return _iMousePosition; }
-        }
+        public int MouseLocation => _iMousePosition;
 
         [DefaultValue(typeof(Color), "ControlDarkDark")]
         [Description("The color used to lines and numbers on the ruler")]
@@ -675,7 +667,7 @@
         {
             if (iOffset < 0) return 0;
 
-            double nValue = ((double)iOffset - Start()) / (double)_Scale * (double)_iMajorInterval;
+            double nValue = ((double)iOffset - Start()) / _Scale * _iMajorInterval;
             return nValue + this._StartValue;
         }
 
@@ -685,7 +677,7 @@
             double nValue = nScaleValue - this._StartValue;
             if (nValue < 0) return Start();  // Start is the offset to the actual display area to allow for the border (if any)
 
-            int iOffset = Convert.ToInt32(nValue / (double)_iMajorInterval * (double)_Scale);
+            int iOffset = Convert.ToInt32(nValue / _iMajorInterval * _Scale);
 
             return iOffset + Start();
         }
@@ -712,11 +704,10 @@
 
         private void DrawControl(Graphics graphics)
         {
-            Graphics g = null;
+            Graphics g;
 
             if (!this.Visible) return;
 
-            // Bug reported by Kristoffer F
             if (this.Width < 1 || this.Height < 1)
             {
                 return;
@@ -725,7 +716,6 @@
             if (_Bitmap == null)
             {
                 int iValueOffset = 0;
-                int iScaleStartValue;
 
                 // Create a bitmap
                 _Bitmap = new Bitmap(this.Width, this.Height);
@@ -737,6 +727,7 @@
                     // Wash the background with BackColor
                     g.FillRectangle(new SolidBrush(this.BackColor), 0, 0, _Bitmap.Width, _Bitmap.Height);
 
+                    int iScaleStartValue;
                     if (this.StartValue >= 0)
                     {
                         iScaleStartValue = Convert.ToInt32(_StartValue * _Scale / _iMajorInterval);  // Convert value to pixels
@@ -752,17 +743,16 @@
                         // This will be subtracted from the number calculated for the display numeral
                         iScaleStartValue = Convert.ToInt32(dStartValue * _Scale / _iMajorInterval);  // Convert value to pixels
                         iValueOffset = Convert.ToInt32(Math.Ceiling(Math.Abs(_StartValue)));
-                    };
-
+                    }
                     // Paint the lines on the image
-                    int iScale = _Scale;
+                    int iScale;
 
                     int iStart = Start();  // iStart is the pixel number on which to start.
                     int iEnd = (this.Orientation == Orientations.orHorizontal) ? Width : Height;
 
                     for (int j = iStart; j <= iEnd; j += iScale)
                     {
-                        int iLeft = _Scale;  // Make an assumption that we're starting at zero or on a major increment
+                        int iLeft;  // Make an assumption that we're starting at zero or on a major increment
                         int jOffset = j + iScaleStartValue;
 
                         iScale = ((jOffset - iStart) % _Scale);  // Get the mod value to see if this is "big line" opportunity
@@ -800,7 +790,7 @@
                         for (int i = 0; i < _iNumberOfDivisions; i++)
                         {
                             // Get the increment for the next mark
-                            int iX = Convert.ToInt32(Math.Round((double)(_Scale - iUsed) / (double)(_iNumberOfDivisions - i), 0)); // Use a spreading algorithm rather that using expensive floating point numbers
+                            int iX = Convert.ToInt32(Math.Round((_Scale - iUsed) / (double)(_iNumberOfDivisions - i), 0)); // Use a spreading algorithm rather that using expensive floating point numbers
 
                             // So the next mark will have used up
                             iUsed += iX;
@@ -957,7 +947,8 @@
                         }
                 }
 
-                drawingPoint = new Point(iX, iY);
+                drawingPoint = new Point(iX - (int)size.Width, iY);
+                g.DrawString(iValue.ToString(), this.Font, new SolidBrush(this.ForeColor), drawingPoint);
             }
             else
             {
@@ -984,11 +975,8 @@
                 }
 
                 drawingPoint = new Point(iX, iY);
+                g.DrawString(iValue.ToString(), this.Font, new SolidBrush(this.ForeColor), drawingPoint, format);
             }
-
-            // The drawstring function is common to all operations
-
-            g.DrawString(iValue.ToString(), this.Font, new SolidBrush(this.ForeColor), drawingPoint, format);
         }
 
         private void Line(Graphics g, int x1, int y1, int x2, int y2)
@@ -1031,33 +1019,14 @@
                 case ScaleModes.smMillimetres:
                     iScale = 27;
                     break;
-                    /*
-                                    case ScaleModes.smPoints:
-                                        iScale = 96;
-                                        break;
-
-                                    case ScaleModes.smPixels:
-                                        iScale = 100;
-                                        break;
-
-                                    case ScaleModes.smCentimetres:
-                                        iScale = 38;
-                                        break;
-
-                                    case ScaleModes.smInches:
-                                        iScale = 96;
-                                        break;
-
-                                    case ScaleModes.smMillimetres:
-                                        iScale = 4;
-                                        break;
-                    */
             }
 
             if (iScaleMode == ScaleModes.smPixels)
-                return Convert.ToInt32((double)iScale * _ZoomFactor);
-            else
-                return Convert.ToInt32((double)iScale * _ZoomFactor * (double)(_bActualSize ? (double)_DpiX / (float)480 : 0.2));
+            {
+                return Convert.ToInt32(iScale * _ZoomFactor);
+            }
+            
+            return Convert.ToInt32(iScale * _ZoomFactor * (_bActualSize ? (double)_DpiX / 480 : 0.2));
         }
 
         private int DefaultMajorInterval(ScaleModes iScaleMode)
@@ -1094,7 +1063,7 @@
 
         private int Offset()
         {
-            int iOffset = 0;
+            int iOffset;
 
             switch (this._i3DBorderStyle)
             {
@@ -1116,7 +1085,7 @@
 
         private int Start()
         {
-            int iStart = 0;
+            int iStart;
 
             switch (this._i3DBorderStyle)
             {

@@ -13,25 +13,18 @@
 
     public class Grid : Mesh
     {
-        public Grid(
-           Device device,
-           GraphicsCommandList commandList,
-           PrimitiveTopology primitiveTopology,
-           int cellsPerSide,
-           float cellSize,
-           Color color,
-           string name = "Default")
+        public Grid(Device device, GraphicsCommandList commandList, PrimitiveTopology primitiveTopology,
+            int cellsPerSideH, int cellsPerSideV, float cellSize, Color color, ref int index, string name = "Default")
         {
-            CommandList = commandList;
+            base.CommandList = commandList;
             base.PrimitiveTopology = primitiveTopology;
+            base.Name = name;
 
-            this.Name = name;
+            var lineLengthH = cellsPerSideH*cellSize;
+            var lineLengthV = cellsPerSideV*cellSize;
 
-            var numLines = cellsPerSide + 1;
-            var lineLength = cellsPerSide * cellSize;
-
-            var xStart = -lineLength / 2.0f;
-            var yStart = -lineLength / 2.0f;
+            var xStart = 0.0f;
+            var yStart = -lineLengthH;
 
             var xCurrent = xStart;
             var yCurrent = yStart;
@@ -39,35 +32,34 @@
             var vertices = new List<Vertex>();
             var indices = new List<short>();
 
-            short index = 0;
-            for (var y = 0; y < numLines; y++)
+            short gridIndex = 0;
+            for (var y = 0; y <= cellsPerSideV; y++)
             {
-                vertices.Add(new Vertex { Pos = new Vector3(xCurrent, yStart, 0), Color = color.ToVector4() });
-                indices.Add(index++);
-                vertices.Add(new Vertex { Pos = new Vector3(xCurrent, yStart + lineLength, 0), Color = color.ToVector4() });
-                indices.Add(index++);
+                vertices.Add(new Vertex {Position = new Vector3(xCurrent, yStart, 0), Color = color.ToVector4()});
+                indices.Add(gridIndex++);
+                vertices.Add(new Vertex
+                {
+                    Position = new Vector3(xCurrent, yStart + lineLengthH, 0),
+                    Color = color.ToVector4()
+                });
+                indices.Add(gridIndex++);
                 xCurrent += cellSize;
             }
 
-            for (var x = 0; x < numLines; x++)
+            for (var x = 0; x <= cellsPerSideH; x++)
             {
-                vertices.Add(new Vertex { Pos = new Vector3(xStart, yCurrent, 0), Color = color.ToVector4() });
-                indices.Add(index++);
-                vertices.Add(new Vertex { Pos = new Vector3(xStart + lineLength, yCurrent, 0), Color = color.ToVector4() });
-                indices.Add(index++);
+                vertices.Add(new Vertex {Position = new Vector3(xStart, yCurrent, 0), Color = color.ToVector4()});
+                indices.Add(gridIndex++);
+                vertices.Add(new Vertex
+                {
+                    Position = new Vector3(xStart + lineLengthV, yCurrent, 0),
+                    Color = color.ToVector4()
+                });
+                indices.Add(gridIndex++);
                 yCurrent += cellSize;
             }
 
-            this.Initialize(device, vertices, indices);
-        }
-
-        public new void Draw()
-        {
-            CommandList.SetVertexBuffer(0, VertexBufferView);
-            CommandList.SetIndexBuffer(IndexBufferView);
-            CommandList.PrimitiveTopology = PrimitiveTopology;
-            //_commandList.SetGraphicsRootConstantBufferView(0, this.VertexBufferGPU.GPUVirtualAddress + ObjCBIndex * BufferHelper.CalcConstantBufferByteSize<ObjectConstants>());
-            CommandList.DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
+            this.Initialize(device, ref index, vertices, indices);
         }
     }
 }
