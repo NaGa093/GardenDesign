@@ -18,10 +18,11 @@
             this.perspectiveMatrix = Matrix.Identity;
             this.orthographicMatrix = Matrix.Identity;
             this.position = new Vector3(0,0,0);
+            this.Zoom = 1;
         }
 
         public Vector3 Eye { get; protected set; }
-
+        public float Zoom { get; protected set; }
         public Matrix ViewMatrix
         {
             get { return viewMatrix; }

@@ -253,11 +253,11 @@
                 CurrentFenceEvent.WaitOne();
             }
 
-            if (init > 0)
+           // if (init > 0)
             {
                 for (var i = 0; i < this.meshes.Count; i++)
                 {
-                    var objConstants = new ObjectConstants { World = Matrix.Transpose(this.meshes[i].World) };
+                    var objConstants = new ObjectConstants { World = Matrix.Transpose(this.meshes[i].World) * Matrix.Scaling(this.camera.Zoom, this.camera.Zoom, this.camera.Zoom) };
                     CurrFrameResource.ObjectCB.CopyData(i, ref objConstants);
                 }
                 init--;
@@ -354,7 +354,7 @@
 
         public void CameraZoom(int zoomValue)
         {
-            this.camera.Zoom(zoomValue);
+            this.camera.CameraZoom(zoomValue);
         }
 
         public void CameraPosition(float x, float y, float z)

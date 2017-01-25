@@ -18,6 +18,22 @@
             this.directXControl1.MouseMove += DirectXControl1_MouseMove;
             this.directXControl1.MouseUp += DirectXControl1_MouseUp;
             this.directXControl1.MouseDown += DirectXControl1_MouseDown;
+            this.directXControl1.MouseWheel += DirectXControl1_MouseWheel;
+        }
+
+        private void DirectXControl1_MouseWheel(object sender, MouseEventArgs e)
+        {
+            this.directXControl1.CameraZoom(e.Delta);
+            if (e.Delta > 0)
+            {
+                this.TopRulerControl.ZoomFactor += 0.1;
+                this.LeftRulerControl.ZoomFactor += 0.1;
+            }
+            else
+            {
+                this.TopRulerControl.ZoomFactor -= 0.1;
+                this.LeftRulerControl.ZoomFactor -= 0.1;
+            }
         }
 
         private void DirectXControl1_MouseDown(object sender, MouseEventArgs e)

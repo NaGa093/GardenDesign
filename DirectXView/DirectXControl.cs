@@ -16,7 +16,6 @@
             this.Resize += DirectXControl_Resize;
             this.Paint += DirectXControl_Paint;
             this.Disposed += DirectXControl_Disposed;
-            this.MouseWheel += DirectXControl_MouseWheel;
         }
 
         public void AddMesh(float startX, float startY, float stopX, float stopY)
@@ -29,9 +28,9 @@
             this.screen?.SetCameraPosition(point.X, point.Y);
         }
 
-        private void DirectXControl_MouseWheel(object sender, MouseEventArgs e)
+        public void CameraZoom(int delta)
         {
-            this.screen?.CameraZoom(e.Delta);
+            this.screen?.CameraZoom(delta);
         }
 
         private void DirectXControl_Disposed(object sender, System.EventArgs e)
