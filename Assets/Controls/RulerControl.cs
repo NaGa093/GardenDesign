@@ -621,7 +621,7 @@
             get { return _ZoomFactor; }
             set
             {
-                if ((value < 0.1) || (value > 10)) throw new Exception("Zoom factor can be between 10% and 1000%");
+                if ((value < 0.1) || (value > 10)) return;
                 if (_ZoomFactor == value) return;
                 _ZoomFactor = value;
                 this.ScaleMode = _ScaleMode;

@@ -364,6 +364,7 @@
 
         public void AddMesh(float startX, float startY, float stopX, float stopY)
         {
+            return;
             this.commandObjects.GetGraphicsCommandList.Reset(commandObjects.GetCommandAllocator, null);
             var index = this.meshes.Count;
             //this.meshes.Add(new Sphere(device, commandObjects.GetGraphicsCommandList, PrimitiveTopology.TriangleList, new Vector3(50, -50, 0), 10, 10, 10, Color.Red, ref index));

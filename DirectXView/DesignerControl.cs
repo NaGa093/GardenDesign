@@ -57,7 +57,7 @@
 
                     if (this.TopRulerControl.StartValue + newPoint.X > 0)
                     {
-                        this.TopRulerControl.StartValue += newPoint.X;
+                        this.TopRulerControl.StartValue += newPoint.X / this.TopRulerControl.ZoomFactor;
                     }
                     else
                     {
@@ -66,7 +66,7 @@
 
                     if (this.LeftRulerControl.StartValue + newPoint.Y > 0)
                     {
-                        this.LeftRulerControl.StartValue += newPoint.Y;
+                        this.LeftRulerControl.StartValue += newPoint.Y / this.LeftRulerControl.ZoomFactor;
                     }
                     else
                     {
